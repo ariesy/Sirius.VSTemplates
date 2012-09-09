@@ -1,0 +1,22 @@
+<VSTemplate Version="3.0.0" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" Type="Item">
+  <TemplateData>
+    <Name Package="{1106BD64-C0FB-4115-816B-674B97CE3C82}" ID="21102"/>
+    <Description Package="{1106BD64-C0FB-4115-816B-674B97CE3C82}" ID="21103"/>
+    <Icon Package="{39c9c826-8ef8-4079-8c95-428f5b1c323f}" ID="4510"/>
+    <ProjectType>VisualBasic</ProjectType>
+    <SortOrder>5</SortOrder>
+    <DefaultName>Controller.vb</DefaultName>
+    <ProvideDefaultName>true</ProvideDefaultName>
+    <NumberOfParentCategoriesToRollUp>2</NumberOfParentCategoriesToRollUp> 
+    <RequiredFrameworkVersion>3.5</RequiredFrameworkVersion>
+    <TemplateGroupID>MVC</TemplateGroupID> 
+    <ShowByDefault>false</ShowByDefault>
+  </TemplateData>
+  <TemplateContent>
+    <References />
+  </TemplateContent>
+  <WizardExtension>
+    <Assembly>Microsoft.VisualStudio.Web.Mvc.2.0, Version=10.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35</Assembly>
+    <FullClassName>Microsoft.VisualStudio.Web.Mvc.MvcAddControllerTemplateWizard</FullClassName>
+  </WizardExtension>
+</VSTemplate>

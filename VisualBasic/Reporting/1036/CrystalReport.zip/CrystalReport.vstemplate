@@ -1,0 +1,16 @@
+﻿
+<VSTemplate Type="Item" Version="3.0.0" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <Name>Rapport Crystal</Name>
+    <Description>Fichier de rapport Crystal publiant des données vers un formulaire Windows ou Web</Description>
+    <Icon>crw.ico</Icon>
+    <TemplateID>CrystalReports.VisualBasic.ItemTemplate</TemplateID>
+    <ProjectType>VisualBasic</ProjectType>
+    <RequiredFrameworkVersion>2.0</RequiredFrameworkVersion>
+    <DefaultName>CrystalReport.rpt</DefaultName>
+    <NumberOfParentCategoriesToRollUp>1</NumberOfParentCategoriesToRollUp>
+  </TemplateData>
+  <TemplateContent>
+    <ProjectItem OpenInWebBrowser="true" ReplaceParameters="true" SubType="" TargetFileName="$fileinputname$.mht">CrystalReportsForVisualStudio.mht</ProjectItem>
+  </TemplateContent>
+</VSTemplate>

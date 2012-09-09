@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<RoleTemplateData RoleProjectTargetFramework="4.0">
+  <VsTemplate Name="BusinessApplication.zip" Language="CSharp"/>
+  <AssemblyReferences>
+    <Reference Name="Microsoft.WindowsAzure.ServiceRuntime" SpecificVersion="false" />
+    <Reference Name="Microsoft.WindowsAzure.StorageClient" SpecificVersion="false" CopyLocal="true"/>
+    <Reference Name="Microsoft.WindowsAzure.Diagnostics" SpecificVersion="false" CopyLocal="true"/>
+    <Reference Name="System.ServiceModel.DomainServices.Hosting" SpecificVersion="false" CopyLocal="true"/>
+    <Reference Name="System.ServiceModel.DomainServices.Server" SpecificVersion="false" CopyLocal="true"/>
+  </AssemblyReferences>
+  <ProjectItems>
+    <ProjectItem Action="Add" CustomReplaceableParameters="true">WebRole.cs</ProjectItem>
+  </ProjectItems>
+  <RoleProject Type="Web" />
+</RoleTemplateData>

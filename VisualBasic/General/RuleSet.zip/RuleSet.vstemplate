@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<VSTemplate Version="3.0.0" Type="Item" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <Name Package="{72391CE3-743A-4a55-8927-4217541F6517}" ID="160" />
+    <Description Package="{72391CE3-743A-4a55-8927-4217541F6517}" ID="161" />
+    <Icon Package="{72391CE3-743A-4a55-8927-4217541F6517}" ID="201" />
+    <TemplateID>CodeAnalysis-v10-RuleSet</TemplateID>
+    <ProjectType>VisualBasic</ProjectType>
+    <NumberOfParentCategoriesToRollUp>0</NumberOfParentCategoriesToRollUp>
+    <DefaultName>RuleSet.ruleset</DefaultName>
+  </TemplateData>
+  <TemplateContent>
+    <ProjectItem>RuleSet.ruleset</ProjectItem>
+  </TemplateContent>
+</VSTemplate>

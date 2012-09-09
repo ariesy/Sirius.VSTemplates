@@ -1,0 +1,16 @@
+﻿<VSTemplate Version="3.0.0" Type="Item" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <Name Package="{462b036f-7349-4835-9e21-bec60e989b9c}" ID="4594" />
+    <Description Package="{462b036f-7349-4835-9e21-bec60e989b9c}" ID="4595" />
+    <Icon Package="{462b036f-7349-4835-9e21-bec60e989b9c}" ID="4603" />
+    <ProjectType>CSharp</ProjectType>
+    <TemplateGroupID>SqlServerProjects</TemplateGroupID>
+    <TemplateID>SqlTrigger</TemplateID>
+    <ShowByDefault>false</ShowByDefault>
+    <SortOrder>4</SortOrder>
+    <DefaultName>Trigger.cs</DefaultName>
+  </TemplateData>
+  <TemplateContent>
+    <ProjectItem ReplaceParameters="true">Trigger.cs</ProjectItem>
+  </TemplateContent>
+</VSTemplate>

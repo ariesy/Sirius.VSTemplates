@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VSTemplate Version="3.0.0" Type="Item" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <Name Package="{FAE04EC1-301F-11d3-BF4B-00C04F79EFBC}" ID="2426"/>
+    <Description Package="{FAE04EC1-301F-11d3-BF4B-00C04F79EFBC}" ID="2427"/>
+    <Icon Package="{FAE04EC1-301F-11d3-BF4B-00C04F79EFBC}" ID="4591"/>
+    <TemplateID>Microsoft.CSharp.MDIParent</TemplateID>
+    <ProjectType>CSharp</ProjectType>
+    <RequiredFrameworkVersion>2.0</RequiredFrameworkVersion>
+    <NumberOfParentCategoriesToRollUp>1</NumberOfParentCategoriesToRollUp>
+    <DefaultName>MDIParent.cs</DefaultName>
+  </TemplateData>
+  <TemplateContent>
+		<References>
+			<Reference>
+				<Assembly>System</Assembly>
+			</Reference>
+			<Reference>
+				<Assembly>System.Data</Assembly>
+			</Reference>
+			<Reference>
+				<Assembly>System.Drawing</Assembly>
+			</Reference>
+			<Reference>
+				<Assembly>System.Windows.Forms</Assembly>
+			</Reference>
+			<Reference>
+				<Assembly>System.Xml</Assembly>
+			</Reference>
+		</References>
+
+
+    <ProjectItem ReplaceParameters="true" SubType="Form">MDIParent.cs</ProjectItem>
+    <ProjectItem ReplaceParameters="true">MDIParent.Designer.cs</ProjectItem>
+    <ProjectItem TargetFileName="$fileinputname$.resx">MDIParent.resx</ProjectItem>
+
+
+    <CustomParameters>
+        <CustomParameter _locID="$IT_MD_CS_Loc_1$" Name="$IT_MD_CS_Loc_1$" Value="窗口"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_2$" Name="$IT_MD_CS_Loc_2$" Value="文本文件(*.txt)|*.txt|所有文件(*.*)|*.*"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_3$" Name="$IT_MD_CS_Loc_3$" Value="文本文件(*.txt)|*.txt|所有文件(*.*)|*.*"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_4$" Name="$IT_MD_CS_Loc_4$" Value="文件(&amp;F)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_5$" Name="$IT_MD_CS_Loc_5$" Value="新建(&amp;N)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_6$" Name="$IT_MD_CS_Loc_6$" Value="打开(&amp;O)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_7$" Name="$IT_MD_CS_Loc_7$" Value="保存(&amp;S)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_8$" Name="$IT_MD_CS_Loc_8$" Value="另存为(&amp;A)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_9$" Name="$IT_MD_CS_Loc_9$" Value="打印(&amp;P)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_10$" Name="$IT_MD_CS_Loc_10$" Value="打印预览(&amp;V)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_11$" Name="$IT_MD_CS_Loc_11$" Value="打印设置"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_12$" Name="$IT_MD_CS_Loc_12$" Value="退出(&amp;X)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_13$" Name="$IT_MD_CS_Loc_13$" Value="编辑(&amp;E)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_14$" Name="$IT_MD_CS_Loc_14$" Value="撤消(&amp;U)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_15$" Name="$IT_MD_CS_Loc_15$" Value="重复(&amp;R)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_16$" Name="$IT_MD_CS_Loc_16$" Value="剪切(&amp;T)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_17$" Name="$IT_MD_CS_Loc_17$" Value="复制(&amp;C)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_18$" Name="$IT_MD_CS_Loc_18$" Value="粘贴(&amp;P)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_19$" Name="$IT_MD_CS_Loc_19$" Value="全选(&amp;A)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_20$" Name="$IT_MD_CS_Loc_20$" Value="视图(&amp;V)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_21$" Name="$IT_MD_CS_Loc_21$" Value="工具栏(&amp;T)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_22$" Name="$IT_MD_CS_Loc_22$" Value="状态栏(&amp;S)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_23$" Name="$IT_MD_CS_Loc_23$" Value="工具(&amp;T)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_24$" Name="$IT_MD_CS_Loc_24$" Value="选项(&amp;O)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_25$" Name="$IT_MD_CS_Loc_25$" Value="窗口(&amp;W)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_26$" Name="$IT_MD_CS_Loc_26$" Value="新建窗口(&amp;N)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_27$" Name="$IT_MD_CS_Loc_27$" Value="层叠(&amp;C)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_28$" Name="$IT_MD_CS_Loc_28$" Value="垂直平铺(&amp;V)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_29$" Name="$IT_MD_CS_Loc_29$" Value="水平平铺(&amp;H)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_30$" Name="$IT_MD_CS_Loc_30$" Value="全部关闭(&amp;L)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_31$" Name="$IT_MD_CS_Loc_31$" Value="排列图标(&amp;A)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_32$" Name="$IT_MD_CS_Loc_32$" Value="帮助(&amp;H)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_33$" Name="$IT_MD_CS_Loc_33$" Value="目录(&amp;C)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_34$" Name="$IT_MD_CS_Loc_34$" Value="索引(&amp;I)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_35$" Name="$IT_MD_CS_Loc_35$" Value="搜索(&amp;S)"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_36$" Name="$IT_MD_CS_Loc_36$" Value="关于(&amp;A) ..."/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_37$" Name="$IT_MD_CS_Loc_37$" Value="新建"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_38$" Name="$IT_MD_CS_Loc_38$" Value="打开"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_39$" Name="$IT_MD_CS_Loc_39$" Value="保存"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_40$" Name="$IT_MD_CS_Loc_40$" Value="打印"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_41$" Name="$IT_MD_CS_Loc_41$" Value="打印预览"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_42$" Name="$IT_MD_CS_Loc_42$" Value="帮助"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_43$" Name="$IT_MD_CS_Loc_43$" Value="状态"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_44$" Name="$IT_MD_CS_Loc_44$" Value="ToolStrip"/>
+        <CustomParameter _locID="$IT_MD_CS_Loc_45$" Name="$IT_MD_CS_Loc_45$" Value="StatusStrip"/>        
+    </CustomParameters>
+
+  </TemplateContent>
+
+</VSTemplate>

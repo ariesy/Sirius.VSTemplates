@@ -1,0 +1,1407 @@
+﻿<#@ template language="C#" debug="false" hostspecific="true"#>
+<#@ include file="EF.Utility.CS.ttinclude"#><#@
+ output extension=".cs"#><#
+// Copyright (c) Microsoft Corporation.  All rights reserved.
+
+CodeGenerationTools code = new CodeGenerationTools(this);
+MetadataTools ef = new MetadataTools(this);
+MetadataLoader loader = new MetadataLoader(this);
+CodeRegion region = new CodeRegion(this);
+
+EntityFrameworkTemplateFileManager fileManager = EntityFrameworkTemplateFileManager.Create(this);
+
+string inputFile = @"$edmxInputFile$";
+EdmItemCollection ItemCollection = loader.CreateEdmItemCollection(inputFile);
+string namespaceName = code.VsNamespaceSuggestion();
+
+EntityContainer container = ItemCollection.GetItems<EntityContainer>().FirstOrDefault();
+if (container == null)
+{
+    return "//$Localized_STECtx_Comment_10$";
+}
+
+WriteHeader(fileManager);
+BeginNamespace(namespaceName, code);
+
+#>
+<#=Accessibility.ForType(container)#> partial class <#=code.Escape(container)#> : ObjectContext
+{
+    public const string ConnectionString = "name=<#=container.Name#>";
+    public const string ContainerName = "<#=container.Name#>";
+
+    #region Constructors
+
+    public <#=code.Escape(container)#>()
+        : base(ConnectionString, ContainerName)
+    {
+        Initialize();
+    }
+
+    public <#=code.Escape(container)#>(string connectionString)
+        : base(connectionString, ContainerName)
+    {
+        Initialize();
+    }
+
+    public <#=code.Escape(container)#>(EntityConnection connection)
+        : base(connection, ContainerName)
+    {
+        Initialize();
+    }
+
+    private void Initialize()
+    {
+        //$Localized_STECtx_Comment_50$
+        //$Localized_STECtx_Comment_60$
+        ContextOptions.ProxyCreationEnabled = false;
+        ObjectMaterialized += new ObjectMaterializedEventHandler(HandleObjectMaterialized);
+    }
+
+    private void HandleObjectMaterialized(object sender, ObjectMaterializedEventArgs e)
+    {
+        var entity = e.Entity as IObjectWithChangeTracker;
+        if (entity != null)
+        {
+            bool changeTrackingEnabled = entity.ChangeTracker.ChangeTrackingEnabled;
+            try
+            {
+                entity.MarkAsUnchanged();
+            }
+            finally
+            {
+                entity.ChangeTracker.ChangeTrackingEnabled = changeTrackingEnabled;
+            }
+            this.StoreReferenceKeyValues(entity);
+        }
+    }
+
+    #endregion
+
+<#
+        region.Begin("$Localized_STECtx_Comment_70$", 2);
+
+        foreach (EntitySet entitySet in container.BaseEntitySets.OfType<EntitySet>())
+        {
+#>
+
+    <#=Accessibility.ForReadOnlyProperty(entitySet)#> ObjectSet<<#=code.Escape(entitySet.ElementType)#>> <#=code.Escape(entitySet)#>
+    {
+        get { return <#=code.FieldName(entitySet) #>  ?? (<#=code.FieldName(entitySet)#> = CreateObjectSet<<#=code.Escape(entitySet.ElementType)#>>("<#=entitySet.Name#>")); }
+    }
+    private ObjectSet<<#=code.Escape(entitySet.ElementType)#>> <#=code.FieldName(entitySet)#>;
+<#
+        }
+
+        region.End();
+
+        region.Begin("$Localized_STECtx_Comment_80$");
+
+        foreach (EdmFunction edmFunction in container.FunctionImports)
+        {
+            var parameters = FunctionImportParameter.Create(edmFunction.Parameters, code, ef);
+            string paramList = String.Join(", ", parameters.Select(p => p.FunctionParameterType + " " + p.FunctionParameterName).ToArray());
+            if (edmFunction.ReturnParameter == null)
+            {
+                continue;
+            }
+            string returnTypeElement = code.Escape(ef.GetElementType(edmFunction.ReturnParameter.TypeUsage));
+
+#>
+    <#=AccessibilityAndVirtual(Accessibility.ForMethod(edmFunction))#> ObjectResult<<#=returnTypeElement#>> <#=code.Escape(edmFunction)#>(<#=paramList#>)
+    {
+<#
+            foreach (var parameter in parameters)
+            {
+                if (!parameter.NeedsLocalVariable)
+                {
+                    continue;
+                }
+#>
+
+        ObjectParameter <#=parameter.LocalVariableName#>;
+
+        if (<#=parameter.IsNullableOfT ? parameter.FunctionParameterName + ".HasValue" : parameter.FunctionParameterName + " != null"#>)
+        {
+            <#=parameter.LocalVariableName#> = new ObjectParameter("<#=parameter.EsqlParameterName#>", <#=parameter.FunctionParameterName#>);
+        }
+        else
+        {
+            <#=parameter.LocalVariableName#> = new ObjectParameter("<#=parameter.EsqlParameterName#>", typeof(<#=parameter.RawClrTypeName#>));
+        }
+<#
+            }
+#>
+        return base.ExecuteFunction<<#=returnTypeElement#>>("<#=edmFunction.Name#>"<#=code.StringBefore(", ", String.Join(", ", parameters.Select(p => p.ExecuteParameterName).ToArray()))#>);
+    }
+<#
+        }
+        region.End();
+#>
+}
+<#
+    EndNamespace(namespaceName);
+
+    fileManager.StartNewFile(Path.GetFileNameWithoutExtension(Host.TemplateFile) + ".Extensions.cs");
+    BeginNamespace(namespaceName, code);
+    WriteApplyChanges(code);
+    EndNamespace(namespaceName);
+
+    fileManager.Process();
+#>
+<#+
+private void WriteHeader(EntityFrameworkTemplateFileManager fileManager, params string[] extraUsings)
+{
+    fileManager.StartHeader();
+#>
+//------------------------------------------------------------------------------
+// <auto-generated>
+//$Localized_STECtx_Comment_90$
+//$Localized_STECtx_Comment_100$
+//$Localized_STECtx_Comment_110$
+//$Localized_STECtx_Comment_120$
+// </auto-generated>
+//------------------------------------------------------------------------------
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data.Common;
+using System.Data.EntityClient;
+using System.Data.Metadata.Edm;
+using System.Data.Objects.DataClasses;
+using System.Data.Objects;
+using System.Data;
+using System.Diagnostics;
+using System.Globalization;
+using System.Linq;
+<#=String.Join(String.Empty, extraUsings.Select(u => "using " + u + ";" + Environment.NewLine).ToArray())#>
+<#+
+    fileManager.EndBlock();
+}
+
+void BeginNamespace(string namespaceName, CodeGenerationTools code)
+{
+    CodeRegion region = new CodeRegion(this);
+    if (!String.IsNullOrEmpty(namespaceName))
+    {
+#>
+namespace <#=code.EscapeNamespace(namespaceName)#>
+{
+<#+
+        PushIndent(CodeRegion.GetIndent(1));
+    }
+}
+
+void EndNamespace(string namespaceName)
+{
+    if (!String.IsNullOrEmpty(namespaceName))
+    {
+        PopIndent();
+#>
+}
+<#+
+    }
+}
+
+string AccessibilityAndVirtual(string accessibility)
+{
+    if (accessibility != "private")
+    {
+        return accessibility + " virtual";
+    }
+
+    return accessibility;
+}
+#>
+
+<#+
+void WriteApplyChanges(CodeGenerationTools code)
+{
+#>
+public static class SelfTrackingEntitiesContextExtensions
+{
+    /// <summary>
+    /// $Localized_STECtx_Comment_130$
+    /// </summary>
+    /// <typeparam name="TEntity">$Localized_STECtx_Comment_131$</typeparam>
+    /// <param name="objectSet">$Localized_STECtx_Comment_132$</param>
+    /// <param name="entity">$Localized_STECtx_Comment_133$</param>
+    public static void ApplyChanges<TEntity>(this ObjectSet<TEntity> objectSet, TEntity entity) where TEntity : class, IObjectWithChangeTracker
+    {
+        if (objectSet == null)
+        {
+            throw new ArgumentNullException("objectSet");
+        }
+
+        objectSet.Context.ApplyChanges<TEntity>(objectSet.EntitySet.EntityContainer.Name + "." + objectSet.EntitySet.Name, entity);
+    }
+
+    /// <summary>
+    /// $Localized_STECtx_Comment_140$
+    /// </summary>
+    /// <typeparam name="TEntity">$Localized_STECtx_Comment_141$</typeparam>
+    /// <param name="context">$Localized_STECtx_Comment_142$</param>
+    /// <param name="entitySetName">$Localized_STECtx_Comment_143$</param>
+    /// <param name="entity">$Localized_STECtx_Comment_144$</param>
+    public static void ApplyChanges<TEntity>(this ObjectContext context, string entitySetName, TEntity entity) where TEntity : IObjectWithChangeTracker
+    {
+        if (context == null)
+        {
+            throw new ArgumentNullException("context");
+        }
+
+        if (String.IsNullOrEmpty(entitySetName))
+        {
+            throw new ArgumentException("$Localized_STECtx_Comment_165$", "entitySetName");
+        }
+
+        if (entity == null)
+        {
+            throw new ArgumentNullException("entity");
+        }
+
+        bool lazyLoadingSetting = context.ContextOptions.LazyLoadingEnabled;
+        try
+        {
+            context.ContextOptions.LazyLoadingEnabled = false;
+
+            EntityIndex entityIndex = AddHelper.AddAllEntities(context, entitySetName, entity);
+            RelationshipSet allRelationships = new RelationshipSet(context, entityIndex.AllEntities);
+
+            #region Handle Initial Entity State
+
+            foreach (IObjectWithChangeTracker changedEntity in entityIndex.AllEntities.Where(x => x.ChangeTracker.State == ObjectState.Deleted))
+            {
+                HandleDeletedEntity(context, entityIndex, allRelationships, changedEntity);
+            }
+
+            foreach (IObjectWithChangeTracker changedEntity in entityIndex.AllEntities.Where(x => x.ChangeTracker.State != ObjectState.Deleted))
+            {
+                HandleEntity(context, entityIndex, allRelationships, changedEntity);
+            }
+
+            #endregion
+
+            #region Loop through each object state entries
+
+            foreach (IObjectWithChangeTracker changedEntity in entityIndex.AllEntities)
+            {
+                ObjectStateEntry entry = context.ObjectStateManager.GetObjectStateEntry(changedEntity);
+
+                EntityType entityType = context.MetadataWorkspace.GetCSpaceEntityType(changedEntity.GetType());
+
+                foreach (NavigationProperty navProp in entityType.NavigationProperties)
+                {
+                    RelatedEnd relatedEnd = entry.GetRelatedEnd(navProp.Name);
+                    if(!((AssociationType)relatedEnd.RelationshipSet.ElementType).IsForeignKey)
+                    {
+                        ApplyChangesToIndependentAssociation(context, (IObjectWithChangeTracker)changedEntity, entry, navProp, relatedEnd, allRelationships);
+                    }
+
+                }
+            }
+            #endregion
+
+            //$Localized_STECtx_Comment_190$
+            foreach (var relationship in allRelationships)
+            {
+                context.ObjectStateManager.ChangeRelationshipState(
+                    relationship.End0,
+                    relationship.End1,
+                    relationship.AssociationSet.ElementType.FullName,
+                    relationship.AssociationEndMembers[1].Name,
+                    relationship.State);
+            }
+        }
+        finally
+        {
+            context.ContextOptions.LazyLoadingEnabled = lazyLoadingSetting;
+        }
+    }
+
+    private static void ApplyChangesToIndependentAssociation(ObjectContext context, IObjectWithChangeTracker changedEntity, ObjectStateEntry entry, NavigationProperty navProp,
+        IRelatedEnd relatedEnd, RelationshipSet allRelationships)
+    {
+        ObjectChangeTracker changeTracker = changedEntity.ChangeTracker;
+
+        if (changeTracker.State == ObjectState.Added)
+        {
+            //$Localized_STECtx_Comment_200$
+            foreach (object relatedEntity in relatedEnd)
+            {
+                ObjectStateEntry addedRelationshipEntry =
+                            context.ObjectStateManager.ChangeRelationshipState(
+                                changedEntity,
+                                relatedEntity,
+                                navProp.Name,
+                                EntityState.Added);
+
+                allRelationships.Remove(addedRelationshipEntry);
+            }
+        }
+        else
+        {
+            if (navProp.ToEndMember.RelationshipMultiplicity == RelationshipMultiplicity.Many)
+            {
+                //$Localized_STECtx_Comment_210$
+                ObjectList collectionPropertyChanges = null;
+                if (changeTracker.ObjectsRemovedFromCollectionProperties.TryGetValue(navProp.Name, out collectionPropertyChanges))
+                {
+                    foreach (var removedEntityFromAssociation in collectionPropertyChanges)
+                    {
+                        ObjectStateEntry deletedRelationshipEntry =
+                            context.ObjectStateManager.ChangeRelationshipState(
+                                changedEntity,
+                                removedEntityFromAssociation,
+                                navProp.Name,
+                                EntityState.Deleted);
+
+                        allRelationships.Remove(deletedRelationshipEntry);
+                    }
+                }
+
+                //$Localized_STECtx_Comment_220$
+                if (changeTracker.ObjectsAddedToCollectionProperties.TryGetValue(navProp.Name, out collectionPropertyChanges))
+                {
+                    foreach (var addedEntityFromAssociation in collectionPropertyChanges)
+                    {
+                        ObjectStateEntry addedRelationshipEntry =
+                            context.ObjectStateManager.ChangeRelationshipState(
+                                changedEntity,
+                                addedEntityFromAssociation,
+                                navProp.Name,
+                                EntityState.Added);
+
+                        allRelationships.Remove(addedRelationshipEntry);
+                    }
+                }
+            }
+            else
+            {
+
+                //$Localized_STECtx_Comment_230$
+                object originalReferenceValue;
+                if (changeTracker.OriginalValues.TryGetValue(navProp.Name, out originalReferenceValue))
+                {
+                    if (originalReferenceValue != null)
+                    {
+                        //$Localized_STECtx_Comment_240$
+                        ObjectStateEntry deletedRelationshipEntry =
+                            context.ObjectStateManager.ChangeRelationshipState(
+                                entry.Entity,
+                                originalReferenceValue,
+                                navProp.Name,
+                                EntityState.Deleted);
+
+                        allRelationships.Remove(deletedRelationshipEntry);
+                    }
+
+                    //$Localized_STECtx_Comment_250$
+                    object currentReferenceValue = null;
+                    foreach (object o in relatedEnd)
+                    {
+                        currentReferenceValue = o;
+                        break;
+                    }
+                    if (currentReferenceValue != null)
+                    {
+                        ObjectStateEntry addedRelationshipEntry =
+                            context.ObjectStateManager.ChangeRelationshipState(
+                                changedEntity,
+                                currentReferenceValue,
+                                navProp.Name,
+                                EntityState.Added);
+
+                        allRelationships.Remove(addedRelationshipEntry);
+                    }
+                    //$Localized_STECtx_Comment_260$
+                    //$Localized_STECtx_Comment_270$
+                }
+            }
+        }
+    }
+
+    //$Localized_STECtx_Comment_280$
+    //$Localized_STECtx_Comment_290$
+    //$Localized_STECtx_Comment_300$
+    //$Localized_STECtx_Comment_310$
+    private static void HandleRelationshipKeys(ObjectContext context, EntityIndex entityIndex, RelationshipSet allRelationships, IObjectWithChangeTracker entity)
+    {
+        ObjectChangeTracker changeTracker = entity.ChangeTracker;
+        if (changeTracker.State == ObjectState.Unchanged ||
+            changeTracker.State == ObjectState.Modified ||
+            changeTracker.State == ObjectState.Deleted)
+        {
+            ObjectStateEntry entry = context.ObjectStateManager.GetObjectStateEntry(entity);
+            EntityType entityType = context.MetadataWorkspace.GetCSpaceEntityType(entity.GetType());
+            RelationshipManager relationshipManager = context.ObjectStateManager.GetRelationshipManager(entity);
+
+            foreach (var entityReference in EnumerateSaveReferences(relationshipManager))
+            {
+                AssociationSet associationSet = ((AssociationSet)entityReference.RelationshipSet);
+                AssociationEndMember fromEnd = associationSet.AssociationSetEnds[entityReference.SourceRoleName].CorrespondingAssociationEndMember;
+                AssociationEndMember toEnd = associationSet.AssociationSetEnds[entityReference.TargetRoleName].CorrespondingAssociationEndMember;
+
+                //$Localized_STECtx_Comment_320$
+                NavigationProperty navigationProperty = entityType.NavigationProperties.
+                                           SingleOrDefault(x => x.RelationshipType == associationSet.ElementType &&
+                                                           x.FromEndMember == fromEnd &&
+                                                           x.ToEndMember == toEnd);
+
+                //$Localized_STECtx_Comment_330$
+                //$Localized_STECtx_Comment_340$
+                //$Localized_STECtx_Comment_350$
+                //$Localized_STECtx_Comment_360$
+
+                EntityKey currentKey = GetSavedReferenceKey(entityIndex, entityReference, entity, navigationProperty, changeTracker.ExtendedProperties);
+
+                //$Localized_STECtx_Comment_370$
+                object originalValue = null;
+                EntityKey originalKey = null;
+                bool hasOriginalValue = false;
+                if (changeTracker.OriginalValues != null)
+                {
+                    //$Localized_STECtx_Comment_380$
+                    if (navigationProperty != null)
+                    {
+                        hasOriginalValue = changeTracker.OriginalValues.TryGetValue(navigationProperty.Name, out originalValue);
+                    }
+                    //$Localized_STECtx_Comment_390$
+                    if (!hasOriginalValue || originalValue == null)
+                    {
+                        originalKey = GetSavedReferenceKey(entityIndex, entityReference, entity, navigationProperty, changeTracker.OriginalValues);
+                    }
+                }
+
+                //$Localized_STECtx_Comment_400$
+                if (currentKey != null)
+                {
+                    //$Localized_STECtx_Comment_401$
+                    //$Localized_STECtx_Comment_402$
+                    ObjectStateEntry currentEntry;
+                    if (context.ObjectStateManager.TryGetObjectStateEntry(currentKey, out currentEntry) &&
+                       currentEntry.Entity != null &&
+                       currentEntry.State == EntityState.Deleted)
+                    {
+                        entityReference.EntityKey = null;
+                        MoveSavedReferenceKey(entityReference, entity, navigationProperty, changeTracker.ExtendedProperties, changeTracker.OriginalValues);
+                        originalKey = currentKey;
+                    }
+                    else
+                    {
+                        CreateRelationship(context, entityReference, entry.EntityKey, currentKey, originalKey == null ? EntityState.Unchanged : EntityState.Added);
+                    }
+                }
+                else
+                {
+                    //$Localized_STECtx_Comment_410$
+                    //$Localized_STECtx_Comment_420$
+                    currentKey = entityReference.GetCurrentEntityKey(context);
+                }
+
+                //$Localized_STECtx_Comment_440$
+                if (originalKey != null)
+                {
+                    //$Localized_STECtx_Comment_441$
+                    //$Localized_STECtx_Comment_442$
+                    ObjectStateEntry originalEntry = null;
+                    ObjectStateEntry deletedRelationshipEntry = null;
+                    if (context.ObjectStateManager.TryGetObjectStateEntry(originalKey, out originalEntry) &&
+                       originalEntry.Entity != null &&
+                       originalEntry.State == EntityState.Deleted)
+                    {
+                        allRelationships.Add(entityReference, entry.Entity, originalEntry.Entity, EntityState.Deleted);
+                    }
+                    else
+                    {
+                        //$Localized_STECtx_Comment_450$
+                        EntityState currentRelationshipState = DetachRelationship(context, entityReference, entry, currentKey);
+
+                        //$Localized_STECtx_Comment_455$
+                        EntityState targetRelationshipState = EntityState.Detached;
+                        EntityReference targetReference = null;
+                        EntityKey targetKey = null;
+                        if (originalEntry != null &&
+                            originalEntry.Entity != null &&
+                            originalEntry.RelationshipManager != null &&
+                            associationSet.AssociationSetEnds[fromEnd.Name].CorrespondingAssociationEndMember.RelationshipMultiplicity != RelationshipMultiplicity.Many)
+                        {
+                            targetReference = originalEntry.RelationshipManager.GetRelatedEnd(entityReference.RelationshipName, entityReference.SourceRoleName) as EntityReference;
+                            targetKey = targetReference.GetCurrentEntityKey(context);
+                            if (targetKey != null)
+                            {
+                                targetRelationshipState = DetachRelationship(context, targetReference, originalEntry, targetKey);
+                            }
+                        }
+
+
+                        //$Localized_STECtx_Comment_460$
+                        deletedRelationshipEntry = CreateRelationship(context, entityReference, entry.EntityKey, originalKey, EntityState.Deleted);
+
+                        //$Localized_STECtx_Comment_462$
+                        CreateRelationship(context, entityReference, entry.EntityKey, currentKey, currentRelationshipState);
+
+                        //$Localized_STECtx_Comment_465$
+                        if (targetKey != null)
+                        {
+                            CreateRelationship(context, targetReference, originalEntry.EntityKey, targetKey, targetRelationshipState);
+                        }
+                    }
+                    if (deletedRelationshipEntry != null)
+                    {
+                        //$Localized_STECtx_Comment_468$
+                        allRelationships.Remove(deletedRelationshipEntry);
+                    }
+                }
+                else if (currentKey == null && originalValue != null && entityReference.IsDependentEndOfReferentialConstraint())
+                {
+                    //$Localized_STECtx_Comment_470$
+                    //$Localized_STECtx_Comment_480$
+                    //$Localized_STECtx_Comment_490$
+                    context.ObjectStateManager.ChangeRelationshipState(
+                                                        entry.Entity,
+                                                        originalValue,
+                                                        entityReference.RelationshipName,
+                                                        entityReference.TargetRoleName,
+                                                        EntityState.Added);
+                }
+            }
+        }
+    }
+
+    private static ObjectStateEntry CreateRelationship(ObjectContext context, EntityReference entityReference, EntityKey fromKey, EntityKey toKey, EntityState state)
+    {
+        if (state != EntityState.Detached)
+        {
+            AssociationSet associationSet = ((AssociationSet)entityReference.RelationshipSet);
+            AssociationEndMember fromEnd = associationSet.AssociationSetEnds[entityReference.SourceRoleName].CorrespondingAssociationEndMember;
+            AssociationEndMember toEnd = associationSet.AssociationSetEnds[entityReference.TargetRoleName].CorrespondingAssociationEndMember;
+
+            //$Localized_STECtx_Comment_500$
+            Debug.Assert(toKey != null, "$Localized_STECtx_Comment_510$");
+
+            if (toKey.IsTemporary)
+            {
+                //$Localized_STECtx_Comment_520$
+                entityReference.EntityKey = null;
+
+                //$Localized_STECtx_Comment_530$
+                ObjectStateEntry targetEntry;
+                context.ObjectStateManager.TryGetObjectStateEntry(toKey, out targetEntry);
+                Debug.Assert(targetEntry != null, "$Localized_STECtx_Comment_540$");
+                ((IRelatedEnd)entityReference).Add(targetEntry.Entity);
+            }
+            else
+            {
+                entityReference.EntityKey = toKey;
+            }
+
+            ObjectStateEntry relationshipEntry;
+            bool found = context.TryGetObjectStateEntry(fromKey, toKey, associationSet, fromEnd, toEnd, out relationshipEntry);
+            Debug.Assert(found, "$Localized_STECtx_Comment_550$");
+
+            switch (state)
+            {
+                case EntityState.Added:
+                    break;
+                case EntityState.Unchanged:
+                    relationshipEntry.AcceptChanges();
+                    break;
+                case EntityState.Deleted:
+                    relationshipEntry.AcceptChanges();
+                    entityReference.EntityKey = null;
+                    break;
+            }
+            return relationshipEntry;
+        }
+        return null;
+    }
+
+    private static EntityState DetachRelationship(ObjectContext context, EntityReference entityReference, ObjectStateEntry fromEntry, EntityKey toKey)
+    {
+        EntityState currentRelationshipState = EntityState.Detached;
+
+        if (toKey != null)
+        {
+            AssociationSet associationSet = ((AssociationSet)entityReference.RelationshipSet);
+            AssociationEndMember fromEnd = associationSet.AssociationSetEnds[entityReference.SourceRoleName].CorrespondingAssociationEndMember;
+            AssociationEndMember toEnd = associationSet.AssociationSetEnds[entityReference.TargetRoleName].CorrespondingAssociationEndMember;
+
+            ObjectStateEntry currentRelationshipEntry = null;
+
+            if (context.TryGetObjectStateEntry(fromEntry.EntityKey, toKey, associationSet, fromEnd, toEnd, out currentRelationshipEntry))
+            {
+                currentRelationshipState = currentRelationshipEntry.State;
+
+                entityReference.EntityKey = null;
+                if (currentRelationshipEntry.State == EntityState.Deleted)
+                {
+                    currentRelationshipEntry.AcceptChanges();
+                }
+                Debug.Assert(currentRelationshipEntry.State == EntityState.Detached, "$Localized_STECtx_Comment_560$");
+            }
+        }
+        return currentRelationshipState;
+    }
+
+    private static string CreateReferenceKeyLookup(string keyMemberName, EntityReference reference, NavigationProperty navigationProperty)
+    {
+        //$Localized_STECtx_Comment_570$
+        //$Localized_STECtx_Comment_580$
+        if (navigationProperty != null)
+        {
+            return String.Format(CultureInfo.InvariantCulture, "{0}.{1}", navigationProperty.Name, keyMemberName);
+        }
+        else
+        {
+            return String.Format(CultureInfo.InvariantCulture, "Navigate({0}.{1}).{2}", reference.RelationshipSet.ElementType.FullName, reference.TargetRoleName, keyMemberName);
+        }
+    }
+
+    //$Localized_STECtx_Comment_590$
+    //$Localized_STECtx_Comment_600$
+    private static EntityKey GetSavedReferenceKey(EntityIndex entityIndex, EntityReference reference, object entity, NavigationProperty navigationProperty, IDictionary<string, object> values)
+    {
+        Debug.Assert(navigationProperty == null || reference.RelationshipSet.ElementType == navigationProperty.RelationshipType, "$Localized_STECtx_Comment_610$");
+
+        EntitySet entitySet = ((AssociationSet)reference.RelationshipSet).AssociationSetEnds[reference.TargetRoleName].EntitySet;
+
+        List<EntityKeyMember> foundKeyMembers = new List<EntityKeyMember>(1);
+        bool foundNone = true;
+        bool missingSome = false;
+        foreach (var keyMember in entitySet.ElementType.KeyMembers)
+        {
+            string lookupKey = CreateReferenceKeyLookup(keyMember.Name, reference, navigationProperty);
+            object value;
+            if (values.TryGetValue(lookupKey, out value))
+            {
+                foundKeyMembers.Add(new EntityKeyMember(keyMember.Name, value));
+                foundNone = false;
+            }
+            else
+            {
+                missingSome = true;
+            }
+        }
+
+        if (foundNone)
+        {
+            //$Localized_STECtx_Comment_620$
+            return null;
+        }
+        else if (missingSome)
+        {
+            throw new InvalidOperationException(
+                String.Format(
+                    CultureInfo.CurrentCulture,
+                    "$Localized_STECtx_Comment_630$",
+                    entity.GetType().FullName,
+                    reference.RelationshipName,
+                    reference.TargetRoleName));
+        }
+
+        EntityKey key = entityIndex.ConvertEntityKey(new EntityKey(reference.GetEntitySetName(), foundKeyMembers));
+        return key;
+    }
+
+    //$Localized_STECtx_Comment_631$
+    private static void MoveSavedReferenceKey(EntityReference reference, object entity, NavigationProperty navigationProperty, IDictionary<string, object> sourceValues, IDictionary<string, object> targetValues)
+    {
+        Debug.Assert(navigationProperty == null || reference.RelationshipSet.ElementType == navigationProperty.RelationshipType, "$Localized_STECtx_Comment_632$");
+
+        EntitySet entitySet = ((AssociationSet)reference.RelationshipSet).AssociationSetEnds[reference.TargetRoleName].EntitySet;
+
+        bool missingSome = false;
+        foreach (var keyMember in entitySet.ElementType.KeyMembers)
+        {
+            string lookupKey = CreateReferenceKeyLookup(keyMember.Name, reference, navigationProperty);
+            object value;
+            if (sourceValues.TryGetValue(lookupKey, out value))
+            {
+                if (targetValues.ContainsKey(lookupKey))
+                {
+                    targetValues[lookupKey] = value;
+                }
+                else
+                {
+                    targetValues.Add(lookupKey, value);
+                }
+                sourceValues.Remove(lookupKey);
+            }
+            else
+            {
+                missingSome = true;
+            }
+        }
+
+        if (missingSome)
+        {
+            throw new InvalidOperationException(
+                String.Format(
+                    CultureInfo.CurrentCulture,
+                    "$Localized_STECtx_Comment_633$",
+                    entity.GetType().FullName,
+                    reference.RelationshipName,
+                    reference.TargetRoleName));
+        }
+    }
+
+    private static IEnumerable<EntityReference> EnumerateSaveReferences(RelationshipManager manager)
+    {
+        return manager.GetAllRelatedEnds().OfType<EntityReference>()
+                .Where(er => er.RelationshipSet.ElementType.RelationshipEndMembers[er.SourceRoleName].RelationshipMultiplicity != RelationshipMultiplicity.One &&
+                    !((AssociationSet)er.RelationshipSet).ElementType.IsForeignKey);
+    }
+
+    internal static void StoreReferenceKeyValues(this ObjectContext context, IObjectWithChangeTracker entity)
+    {
+        if(entity == null)
+        {
+            throw new ArgumentNullException("entity");
+        }
+
+        ObjectStateEntry entry;
+        if (!context.ObjectStateManager.TryGetObjectStateEntry(entity, out entry))
+        {
+            //$Localized_STECtx_Comment_635$
+            return;
+        }
+
+        var relationshipManager = entry.RelationshipManager;
+        EntityType entityType = context.MetadataWorkspace.GetCSpaceEntityType(entity.GetType());
+        foreach (EntityReference entityReference in EnumerateSaveReferences(relationshipManager))
+        {
+            NavigationProperty navigationProperty = entityType.NavigationProperties.FirstOrDefault(n => n.RelationshipType == entityReference.RelationshipSet.ElementType &&
+                    n.FromEndMember.Name == entityReference.SourceRoleName &&
+                    n.ToEndMember.Name == entityReference.TargetRoleName);
+
+            object value = entityReference.GetValue();
+            if ((navigationProperty == null || value == null) && entityReference.EntityKey != null)
+            {
+                foreach (var item in entityReference.EntityKey.EntityKeyValues)
+                {
+                    string key = CreateReferenceKeyLookup(item.Key, entityReference, navigationProperty);
+                    entity.ChangeTracker.ExtendedProperties.Add(key, item.Value);
+                }
+            }
+        }
+    }
+
+    private static void HandleEntity(ObjectContext context, EntityIndex entityIndex, RelationshipSet allRelationships, IObjectWithChangeTracker entity)
+    {
+        ChangeEntityStateBasedOnObjectState(context, entity);
+        HandleRelationshipKeys(context, entityIndex, allRelationships, entity);
+        UpdateOriginalValues(context, entity);
+    }
+
+    private static void HandleDeletedEntity(ObjectContext context, EntityIndex entityIndex, RelationshipSet allRelationships, IObjectWithChangeTracker entity)
+    {
+        HandleRelationshipKeys(context, entityIndex, allRelationships, entity);
+        ChangeEntityStateBasedOnObjectState(context, entity);
+        UpdateOriginalValues(context, entity);
+    }
+
+    private static void UpdateOriginalValues(ObjectContext context, IObjectWithChangeTracker entity)
+    {
+        if (entity.ChangeTracker.State == ObjectState.Unchanged ||
+            entity.ChangeTracker.State == ObjectState.Added ||
+            entity.ChangeTracker.OriginalValues == null)
+        {
+            //$Localized_STECtx_Comment_650$
+            return;
+        }
+
+        //$Localized_STECtx_Comment_660$
+
+        ObjectStateEntry entry = context.ObjectStateManager.GetObjectStateEntry(entity);
+        OriginalValueRecord originalValueRecord = entry.GetUpdatableOriginalValues();
+        EntityType entityType = context.MetadataWorkspace.GetCSpaceEntityType(entity.GetType());
+
+        //$Localized_STECtx_Comment_670$
+        //$Localized_STECtx_Comment_680$
+        //$Localized_STECtx_Comment_690$
+        //
+        //$Localized_STECtx_Comment_700$
+        //$Localized_STECtx_Comment_710$
+        foreach(EdmProperty property in entityType.Properties)
+        {
+            object value;
+            if(property.TypeUsage.EdmType is PrimitiveType && entity.ChangeTracker.OriginalValues.TryGetValue(property.Name, out value))
+            {
+                originalValueRecord.SetValue(property, value);
+            }
+            else if(property.TypeUsage.EdmType is ComplexType)
+            {
+                OriginalValueRecord complexOriginalValues = originalValueRecord.GetOriginalValueRecord(property.Name);
+                UpdateOriginalValues((ComplexType)property.TypeUsage.EdmType, entity.GetType().FullName, property.Name, entity.ChangeTracker.OriginalValues, complexOriginalValues);
+            }
+        }
+    }
+
+    private static void UpdateOriginalValues(ComplexType complexType, string entityTypeName, string propertyPathToType, IDictionary<string, object> originalValueSource, OriginalValueRecord complexOriginalValueRecord)
+    {
+        //$Localized_STECtx_Comment_720$
+        //$Localized_STECtx_Comment_730$
+        //$Localized_STECtx_Comment_740$
+        //
+        //$Localized_STECtx_Comment_750$
+        //$Localized_STECtx_Comment_760$
+        //$Localized_STECtx_Comment_770$
+        foreach (EdmProperty property in complexType.Properties)
+        {
+            object value;
+            string propertyPath = String.Format(CultureInfo.InvariantCulture, "{0}.{1}", propertyPathToType, property.Name);
+            if (property.TypeUsage.EdmType is PrimitiveType && originalValueSource.TryGetValue(propertyPath, out value))
+            {
+                if (complexOriginalValueRecord != null)
+                {
+                    complexOriginalValueRecord.SetValue(property, value);
+                }
+                else if (value != null)
+                {
+                    Debug.Assert(complexOriginalValueRecord == null, "$Localized_STECtx_Comment_780$");
+                    throw new InvalidOperationException(
+                        String.Format(
+                        CultureInfo.CurrentCulture,
+                        "$Localized_STECtx_Comment_790$",
+                        propertyPathToType,
+                        entityTypeName));
+                }
+            }
+            else if (property.TypeUsage.EdmType is ComplexType)
+            {
+                OriginalValueRecord nestedOriginalValueRecord = null;
+                if (complexOriginalValueRecord != null)
+                {
+                    nestedOriginalValueRecord = complexOriginalValueRecord.GetOriginalValueRecord(property.Name);
+                }
+                //$Localized_STECtx_Comment_800$
+                UpdateOriginalValues((ComplexType)property.TypeUsage.EdmType, entityTypeName, propertyPath, originalValueSource, nestedOriginalValueRecord);
+            }
+        }
+    }
+
+    private static OriginalValueRecord GetOriginalValueRecord(this OriginalValueRecord record, string name)
+    {
+        int ordinal = record.GetOrdinal(name);
+        if (!record.IsDBNull(ordinal))
+        {
+            return record.GetDataRecord(ordinal) as OriginalValueRecord;
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+    private static void SetValue(this OriginalValueRecord record, EdmProperty edmProperty, object value)
+    {
+        if (value == null)
+        {
+            Type entityClrType = ((PrimitiveType)edmProperty.TypeUsage.EdmType).ClrEquivalentType;
+            if (entityClrType.IsValueType &&
+                !(entityClrType.IsGenericType && typeof(Nullable<>) == entityClrType.GetGenericTypeDefinition()))
+            {
+                //$Localized_STECtx_Comment_805$
+                return;
+            }
+        }
+
+        int ordinal = record.GetOrdinal(edmProperty.Name);
+        record.SetValue(ordinal, value);
+    }
+
+
+    private static void ChangeEntityStateBasedOnObjectState(ObjectContext context, IObjectWithChangeTracker entity)
+    {
+        switch (entity.ChangeTracker.State)
+        {
+            case (ObjectState.Added):
+                //$Localized_STECtx_Comment_810$
+                Debug.Assert(context.ObjectStateManager.GetObjectStateEntry(entity).State == EntityState.Added, "$Localized_STECtx_Comment_820$");
+                break;
+            case (ObjectState.Unchanged):
+                context.ObjectStateManager.ChangeObjectState(entity, EntityState.Unchanged);
+                break;
+            case (ObjectState.Modified):
+                context.ObjectStateManager.ChangeObjectState(entity, EntityState.Modified);
+                break;
+            case (ObjectState.Deleted):
+                context.ObjectStateManager.ChangeObjectState(entity, EntityState.Deleted);
+                break;
+
+        }
+    }
+
+    private static EntityType GetCSpaceEntityType(this MetadataWorkspace workspace, Type type)
+    {
+        EntityType ospaceEntityType = null;
+        StructuralType cspaceEntityType = null;
+        EntityType entityType = null;
+        if (workspace.TryGetItem<EntityType>(
+            type.FullName,
+            DataSpace.OSpace,
+            out ospaceEntityType))
+        {
+            if (workspace.TryGetEdmSpaceType(
+                ospaceEntityType,
+                out cspaceEntityType))
+            {
+                entityType = cspaceEntityType as EntityType;
+            }
+        }
+        if(entityType == null)
+        {
+            throw new ArgumentException(String.Format(CultureInfo.CurrentCulture, "$Localized_STECtx_Comment_830$", type.FullName));
+        }
+        return entityType;
+    }
+
+    private static object GetValue(this System.Data.Objects.DataClasses.EntityReference entityReference)
+    {
+        foreach (object value in entityReference)
+        {
+            return value;
+        }
+        return null;
+    }
+
+    private static EntityKey GetCurrentEntityKey(this System.Data.Objects.DataClasses.EntityReference entityReference, ObjectContext context)
+    {
+        EntityKey currentKey = null;
+        object currentValue = entityReference.GetValue();
+        if (currentValue != null)
+        {
+            ObjectStateEntry relatedEntry = context.ObjectStateManager.GetObjectStateEntry(currentValue);
+            currentKey = relatedEntry.EntityKey;
+        }
+        else
+        {
+            currentKey = entityReference.EntityKey;
+        }
+        return currentKey;
+    }
+
+    private static RelatedEnd GetRelatedEnd(this ObjectStateEntry entry, string navigationPropertyIdentity)
+    {
+        NavigationProperty navigationProperty =
+                        GetNavigationProperty(entry.ObjectStateManager.MetadataWorkspace.GetCSpaceEntityType(entry.Entity.GetType()), navigationPropertyIdentity);
+        return entry.RelationshipManager.GetRelatedEnd(
+            navigationProperty.RelationshipType.FullName, navigationProperty.ToEndMember.Name) as RelatedEnd;
+    }
+
+    private static NavigationProperty GetNavigationProperty(this EntityType entityType, string navigationPropertyIdentity)
+    {
+        NavigationProperty navigationProperty;
+        if (!entityType.NavigationProperties.TryGetValue(navigationPropertyIdentity, false, out navigationProperty))
+        {
+            throw new InvalidOperationException(
+                String.Format(
+                    CultureInfo.CurrentCulture,
+                    "$Localized_STECtx_Comment_840$",
+                    navigationPropertyIdentity,
+                    entityType.FullName));
+        }
+        return navigationProperty;
+    }
+
+    private static string GetEntitySetName(this RelatedEnd relatedEnd)
+    {
+        EntitySet entitySet = ((AssociationSet)relatedEnd.RelationshipSet).AssociationSetEnds[relatedEnd.TargetRoleName].EntitySet;
+        return entitySet.EntityContainer.Name + "." + entitySet.Name;
+    }
+
+    private static bool IsDependentEndOfReferentialConstraint(this RelatedEnd relatedEnd)
+    {
+        if (null != relatedEnd.RelationshipSet)
+        {
+            //$Localized_STECtx_Comment_850$
+            //$Localized_STECtx_Comment_860$
+            foreach (ReferentialConstraint constraint in ((AssociationType)relatedEnd.RelationshipSet.ElementType).ReferentialConstraints)
+            {
+                if (constraint.ToRole.Name == relatedEnd.SourceRoleName)
+                {
+                    //$Localized_STECtx_Comment_870$
+                    //$Localized_STECtx_Comment_880$
+                    //$Localized_STECtx_Comment_890$
+                    //$Localized_STECtx_Comment_900$
+                    //$Localized_STECtx_Comment_910$
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static bool TryGetObjectStateEntry(this ObjectContext context, EntityKey from, EntityKey to, AssociationSet associationSet, AssociationEndMember fromEnd, AssociationEndMember toEnd, out ObjectStateEntry entry)
+    {
+        entry = null;
+        foreach (var relationshipEntry in (from e in context.ObjectStateManager.GetObjectStateEntries(EntityState.Added | EntityState.Unchanged)
+                                           where e.IsRelationship && e.EntitySet == associationSet
+                                           select e))
+        {
+            CurrentValueRecord currentValues = relationshipEntry.CurrentValues;
+            int fromOrdinal = currentValues.GetOrdinal(fromEnd.Name);
+            int toOrdinal = currentValues.GetOrdinal(toEnd.Name);
+            if (((EntityKey)currentValues.GetValue(fromOrdinal)) == from &&
+                ((EntityKey)currentValues.GetValue(toOrdinal)) == to)
+            {
+                entry = relationshipEntry;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private sealed class AddHelper
+    {
+        private readonly ObjectContext _context;
+        private readonly EntityIndex _entityIndex;
+
+        //$Localized_STECtx_Comment_920$
+        private readonly Queue<Tuple<string, IObjectWithChangeTracker>> _entitiesToAdd;
+        private readonly Queue<Tuple<ObjectStateEntry, string, IEnumerable<object>>> _entitiesDuringAdd;
+
+        public static EntityIndex AddAllEntities(ObjectContext context, string entitySetName, IObjectWithChangeTracker entity)
+        {
+            AddHelper addHelper = new AddHelper(context);
+
+            try
+            {
+                //$Localized_STECtx_Comment_930$
+                addHelper.QueueAdd(entitySetName, entity);
+
+                //$Localized_STECtx_Comment_940$
+                while (addHelper.HasMore)
+                {
+                    Tuple<string, IObjectWithChangeTracker> entityInSet = addHelper.NextAdd();
+                    //$Localized_STECtx_Comment_950$
+                    ObjectStateEntry entry = null;
+                    if (!context.ObjectStateManager.TryGetObjectStateEntry(entityInSet.Item2, out entry))
+                    {
+                        context.AddObject(entityInSet.Item1, entityInSet.Item2);
+                    }
+                }
+            }
+            finally
+            {
+                addHelper.Detach();
+            }
+            return addHelper.EntityIndex;
+        }
+
+        private AddHelper(ObjectContext context)
+        {
+            _context = context;
+            _context.ObjectStateManager.ObjectStateManagerChanged += this.HandleStateManagerChange;
+
+            _entityIndex = new EntityIndex(context);
+            _entitiesToAdd = new Queue<Tuple<string, IObjectWithChangeTracker>>();
+            _entitiesDuringAdd = new Queue<Tuple<ObjectStateEntry, string, IEnumerable<object>>>();
+        }
+
+        private void Detach()
+        {
+            _context.ObjectStateManager.ObjectStateManagerChanged -= this.HandleStateManagerChange;
+        }
+
+        private void HandleStateManagerChange(object sender, CollectionChangeEventArgs args)
+        {
+            if (args.Action == CollectionChangeAction.Add)
+            {
+                IObjectWithChangeTracker entity = args.Element as IObjectWithChangeTracker;
+                ObjectStateEntry entry = _context.ObjectStateManager.GetObjectStateEntry(entity);
+                ObjectChangeTracker changeTracker = entity.ChangeTracker;
+
+                changeTracker.ChangeTrackingEnabled = false;
+                _entityIndex.Add(entry, changeTracker);
+
+                //$Localized_STECtx_Comment_960$
+                var navPropNames = _context.MetadataWorkspace.GetCSpaceEntityType(entity.GetType()).NavigationProperties.Select(n => n.Name);
+                var entityRefOriginalValues = changeTracker.OriginalValues.Where(kvp => navPropNames.Contains(kvp.Key));
+                foreach (KeyValuePair<string, object> originalValueWithName in entityRefOriginalValues)
+                {
+                    if (originalValueWithName.Value != null)
+                    {
+                        _entitiesDuringAdd.Enqueue(new Tuple<ObjectStateEntry, string, IEnumerable<object>>(
+                            entry,
+                            originalValueWithName.Key,
+                            new object[] { originalValueWithName.Value }));
+                    }
+                }
+
+                //$Localized_STECtx_Comment_970$
+                foreach (KeyValuePair<string, ObjectList> collectionPropertyChangesWithName in changeTracker.ObjectsRemovedFromCollectionProperties)
+                {
+                    _entitiesDuringAdd.Enqueue(new Tuple<ObjectStateEntry, string, IEnumerable<object>>(
+                        entry,
+                        collectionPropertyChangesWithName.Key,
+                        collectionPropertyChangesWithName.Value));
+                }
+            }
+        }
+
+        private EntityIndex EntityIndex
+        {
+            get { return _entityIndex; }
+        }
+
+        private bool HasMore
+        {
+            get { ProcessNewAdds(); return _entitiesToAdd.Count > 0; }
+        }
+
+        private void QueueAdd(string entitySetName, IObjectWithChangeTracker entity)
+        {
+            if (!_entityIndex.Contains(entity))
+            {
+                //$Localized_STECtx_Comment_980$
+                _entitiesToAdd.Enqueue(new Tuple<string, IObjectWithChangeTracker>(entitySetName, entity));
+            }
+        }
+
+        private Tuple<string, IObjectWithChangeTracker> NextAdd()
+        {
+            ProcessNewAdds();
+            return _entitiesToAdd.Dequeue();
+        }
+
+        private void ProcessNewAdds()
+        {
+            while (_entitiesDuringAdd.Count > 0)
+            {
+                Tuple<ObjectStateEntry, string, IEnumerable<object>> relatedEntities = _entitiesDuringAdd.Dequeue();
+                RelatedEnd relatedEnd = relatedEntities.Item1.GetRelatedEnd(relatedEntities.Item2);
+                string entitySetName = relatedEnd.GetEntitySetName();
+
+                foreach (var targetEntity in relatedEntities.Item3)
+                {
+                    QueueAdd(entitySetName, targetEntity as IObjectWithChangeTracker);
+                }
+            }
+        }
+    }
+
+    private sealed class EntityIndex
+    {
+        private readonly ObjectContext _context;
+
+        //$Localized_STECtx_Comment_990$
+        private readonly HashSet<IObjectWithChangeTracker> _allEntities;
+
+        //$Localized_STECtx_Comment_1000$
+        //$Localized_STECtx_Comment_1010$
+        private readonly Dictionary<EntityKey, EntityKey> _temporaryKeyMap;
+
+        public EntityIndex(ObjectContext context)
+        {
+            _context = context;
+
+            _allEntities = new HashSet<IObjectWithChangeTracker>();
+            _temporaryKeyMap = new Dictionary<EntityKey, EntityKey>();
+        }
+
+        public void Add(ObjectStateEntry entry, ObjectChangeTracker changeTracker)
+        {
+            EntityKey temporaryKey = entry.EntityKey;
+            EntityKey finalKey;
+
+            if (!_allEntities.Contains(entry.Entity))
+            {
+                //$Localized_STECtx_Comment_1020$
+                _allEntities.Add(entry.Entity as IObjectWithChangeTracker);
+            }
+
+            if (changeTracker.State == ObjectState.Added)
+            {
+                finalKey = temporaryKey;
+            }
+            else
+            {
+                finalKey = _context.CreateEntityKey(temporaryKey.EntityContainerName + "." + temporaryKey.EntitySetName, entry.Entity);
+            }
+            if (!_temporaryKeyMap.ContainsKey(finalKey))
+            {
+                _temporaryKeyMap.Add(finalKey, temporaryKey);
+            }
+        }
+
+        public bool Contains(object entity)
+        {
+            return _allEntities.Contains(entity);
+        }
+
+        public IEnumerable<IObjectWithChangeTracker> AllEntities
+        {
+            get { return _allEntities; }
+        }
+
+        //$Localized_STECtx_Comment_1030$
+        public EntityKey ConvertEntityKey(EntityKey targetKey)
+        {
+            ObjectStateEntry targetEntry;
+            if (!_context.ObjectStateManager.TryGetObjectStateEntry(targetKey, out targetEntry))
+            {
+                //$Localized_STECtx_Comment_1040$
+                //$Localized_STECtx_Comment_1050$
+                //$Localized_STECtx_Comment_1060$
+                EntityKey temporaryKey;
+                if (_temporaryKeyMap.TryGetValue(targetKey, out temporaryKey))
+                {
+                    targetKey = temporaryKey;
+                }
+            }
+            return targetKey;
+        }
+    }
+
+    //$Localized_STECtx_Comment_1070$
+    //$Localized_STECtx_Comment_1080$
+    private sealed class RelationshipSet : IEnumerable<RelationshipWrapper>
+    {
+        private readonly HashSet<RelationshipWrapper> _relationships;
+        private readonly ObjectContext _context;
+
+        public RelationshipSet(ObjectContext context, IEnumerable<object> allEntities)
+        {
+            _context = context;
+            _relationships = new HashSet<RelationshipWrapper>();
+            foreach (object entity in allEntities)
+            {
+                ObjectStateEntry entry = context.ObjectStateManager.GetObjectStateEntry(entity);
+                foreach (IRelatedEnd relatedEnd in entry.RelationshipManager.GetAllRelatedEnds())
+                {
+                    if (!((AssociationType)relatedEnd.RelationshipSet.ElementType).IsForeignKey)
+                    {
+                        foreach (object targetEntity in relatedEnd)
+                        {
+                            Add(relatedEnd, entity, targetEntity, EntityState.Unchanged);
+                        }
+                    }
+                }
+            }
+        }
+
+        //$Localized_STECtx_Comment_1085$
+        public void Add(IRelatedEnd relatedEnd, object sourceEntity, object targetEntity, EntityState state)
+        {
+            RelationshipWrapper wrapper = new RelationshipWrapper(
+                                (AssociationSet)relatedEnd.RelationshipSet,
+                                relatedEnd.SourceRoleName,
+                                sourceEntity,
+                                relatedEnd.TargetRoleName,
+                                targetEntity,
+                                state);
+            if (!_relationships.Contains(wrapper))
+            {
+                _relationships.Add(wrapper);
+            }
+        }
+
+        //$Localized_STECtx_Comment_1090$
+        public void Remove(ObjectStateEntry relationshipEntry)
+        {
+            Debug.Assert(relationshipEntry.IsRelationship);
+            AssociationSet associationSet = (AssociationSet)relationshipEntry.EntitySet;
+            DbDataRecord values = relationshipEntry.State == EntityState.Deleted ? relationshipEntry.OriginalValues : relationshipEntry.CurrentValues;
+            int fromOridinal = values.GetOrdinal(associationSet.ElementType.AssociationEndMembers[0].Name);
+            object fromEntity = _context.ObjectStateManager.GetObjectStateEntry((EntityKey)values.GetValue(fromOridinal)).Entity;
+            int toOridinal = values.GetOrdinal(associationSet.ElementType.AssociationEndMembers[1].Name);
+            object toEntity = _context.ObjectStateManager.GetObjectStateEntry((EntityKey)values.GetValue(toOridinal)).Entity;
+
+            if (fromEntity != null && toEntity != null)
+            {
+                RelationshipWrapper wrapper = new RelationshipWrapper(
+                    associationSet,
+                    associationSet.ElementType.AssociationEndMembers[0].Name,
+                    fromEntity,
+                    associationSet.ElementType.AssociationEndMembers[1].Name,
+                    toEntity,
+                    EntityState.Unchanged);
+
+                _relationships.Remove(wrapper);
+            }
+        }
+
+        #region IEnumerable<RelationshipWrapper>
+
+        public IEnumerator<RelationshipWrapper> GetEnumerator()
+        {
+            return _relationships.GetEnumerator();
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        {
+            return _relationships.GetEnumerator();
+        }
+
+        #endregion
+    }
+
+    //$Localized_STECtx_Comment_1100$
+    //$Localized_STECtx_Comment_1110$
+    //$Localized_STECtx_Comment_1120$
+    private sealed class RelationshipWrapper : IEquatable<RelationshipWrapper>
+    {
+        internal readonly AssociationSet AssociationSet;
+        internal readonly object End0;
+        internal readonly object End1;
+        internal readonly EntityState State;
+
+        internal RelationshipWrapper(AssociationSet extent,
+                                     string role0, object end0,
+                                     string role1, object end1,
+                                     EntityState state)
+        {
+            Debug.Assert(null != extent, "null AssociationSet");
+            Debug.Assert(null != (object)end0, "null end0");
+            Debug.Assert(null != (object)end1, "null end1");
+
+            AssociationSet = extent;
+            Debug.Assert(extent.ElementType.AssociationEndMembers.Count == 2, "$Localized_STECtx_Comment_1130$");
+
+            State = state;
+
+            if (extent.ElementType.AssociationEndMembers[0].Name == role0)
+            {
+                Debug.Assert(extent.ElementType.AssociationEndMembers[1].Name == role1, "$Localized_STECtx_Comment_1140$");
+                End0 = end0;
+                End1 = end1;
+            }
+            else
+            {
+                Debug.Assert(extent.ElementType.AssociationEndMembers[0].Name == role1, "$Localized_STECtx_Comment_1150$");
+                Debug.Assert(extent.ElementType.AssociationEndMembers[1].Name == role0, "$Localized_STECtx_Comment_1160$");
+                End0 = end1;
+                End1 = end0;
+            }
+        }
+
+        internal ReadOnlyMetadataCollection<AssociationEndMember> AssociationEndMembers
+        {
+            get { return this.AssociationSet.ElementType.AssociationEndMembers; }
+        }
+
+        public override int GetHashCode()
+        {
+            return this.AssociationSet.Name.GetHashCode() ^ (this.End0.GetHashCode() + this.End1.GetHashCode());
+        }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as RelationshipWrapper);
+        }
+
+        public bool Equals(RelationshipWrapper wrapper)
+        {
+            return (Object.ReferenceEquals(this, wrapper) ||
+                    ((null != wrapper) &&
+                     Object.ReferenceEquals(this.AssociationSet, wrapper.AssociationSet) &&
+                     Object.ReferenceEquals(this.End0, wrapper.End0) &&
+                     Object.ReferenceEquals(this.End1, wrapper.End1)));
+        }
+    }
+}
+<#+
+}
+#>

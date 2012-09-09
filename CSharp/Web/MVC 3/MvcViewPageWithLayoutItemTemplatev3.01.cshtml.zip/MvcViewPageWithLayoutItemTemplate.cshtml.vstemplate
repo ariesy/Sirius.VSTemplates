@@ -1,0 +1,29 @@
+<VSTemplate Version="3.0.0" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" Type="Item">
+    <TemplateData>
+        <DefaultName>ViewPage.cshtml</DefaultName>
+        <Name Package="{1F372076-D9CE-432D-BC4F-ABFF39671C5C}" ID="21112"/>
+        <Description Package="{1F372076-D9CE-432D-BC4F-ABFF39671C5C}" ID="21113"/>
+        <Icon Package="{1F372076-D9CE-432D-BC4F-ABFF39671C5C}" ID="22000"/>
+        <ProjectType>CSharp</ProjectType>
+        <SortOrder>4</SortOrder>
+        <SupportsMasterPage>true</SupportsMasterPage>
+        <NumberOfParentCategoriesToRollUp>2</NumberOfParentCategoriesToRollUp>
+        <RequiredFrameworkVersion>4.0</RequiredFrameworkVersion>
+        <TemplateID>MvcViewPageWithLayoutItemTemplate.cshtml.vstemplate.v301</TemplateID>
+        <TemplateGroupID>MVC3</TemplateGroupID>
+        <ShowByDefault>false</ShowByDefault>
+    </TemplateData>
+    <TemplateContent>
+        <CustomParameters>
+            <CustomParameter Name="$SelectMaster$" Value="true" />
+            <CustomParameter Name="$language$" Value="C#" />
+            <CustomParameter Name="$ParentExtension$" Value=".cshtml"/>
+            <CustomParameter Name="$ChildExtension$" Value=".cs"/>
+        </CustomParameters>
+        <ProjectItem SubType="" TargetFileName="$fileinputname$.cshtml" ReplaceParameters="true">Views\Home\ViewPage.cshtml</ProjectItem>
+    </TemplateContent>
+    <WizardExtension>
+        <Assembly>Microsoft.VisualStudio.Web.Mvc.3.01, Version=3.1.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35</Assembly>
+        <FullClassName>Microsoft.VisualStudio.Web.Mvc.UserInterface.MvcRazorItemTemplateWizard</FullClassName>
+    </WizardExtension>
+</VSTemplate>

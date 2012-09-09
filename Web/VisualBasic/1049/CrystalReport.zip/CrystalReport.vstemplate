@@ -1,0 +1,17 @@
+﻿
+<VSTemplate Type="Item" Version="3.0.0" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <Name>Crystal Report</Name>
+    <Description>&#x424;&#x430;&#x439;&#x43B; Crystal Report, &#x440;&#x430;&#x441;&#x43F;&#x440;&#x43e;&#x441;&#x442;&#x440;&#x430;&#x43D;&#x44F;&#x44e;&#x449;&#x438;&#x439; &#x434;&#x430;&#x43D;&#x43D;&#x44B;&#x435; &#x43F;&#x43e;&#x441;&#x440;&#x435;&#x434;&#x441;&#x442;&#x432;&#x43e;&#x43C; &#x444;&#x43e;&#x440;&#x43C;&#x44B; Windows &#x438;&#x43B;&#x438; Web </Description>
+    <Icon>crw.ico</Icon>
+    <TemplateID>CrystalReports.Web.VisualBasic.ItemTemplate</TemplateID>
+    <ProjectType>Web</ProjectType>
+    <ProjectSubType>VisualBasic</ProjectSubType>
+    <RequiredFrameworkVersion>2.0</RequiredFrameworkVersion>
+    <DefaultName>CrystalReport.rpt</DefaultName>
+    <NumberOfParentCategoriesToRollUp>1</NumberOfParentCategoriesToRollUp>
+  </TemplateData>
+  <TemplateContent>
+    <ProjectItem OpenInWebBrowser="true" ReplaceParameters="true" SubType="" TargetFileName="$fileinputname$.mht">CrystalReportsForVisualStudio.mht</ProjectItem>
+  </TemplateContent>
+</VSTemplate>

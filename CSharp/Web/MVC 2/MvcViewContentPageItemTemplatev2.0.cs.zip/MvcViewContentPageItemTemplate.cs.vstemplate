@@ -1,0 +1,30 @@
+<VSTemplate Version="3.0.0" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" Type="Item">
+  <TemplateData>
+    <DefaultName>ViewContentPage.aspx</DefaultName>
+    <Name Package="{1106BD64-C0FB-4115-816B-674B97CE3C82}" ID="21104"/>
+    <Description Package="{1106BD64-C0FB-4115-816B-674B97CE3C82}" ID="21105"/>
+    <Icon Package="{39c9c826-8ef8-4079-8c95-428f5b1c323f}" ID="4533"/>
+    <ProjectType>CSharp</ProjectType>
+    <SortOrder>5</SortOrder>
+    <SupportsMasterPage>true</SupportsMasterPage>
+    <NumberOfParentCategoriesToRollUp>2</NumberOfParentCategoriesToRollUp>
+    <RequiredFrameworkVersion>3.5</RequiredFrameworkVersion>
+    <TemplateGroupID>MVC</TemplateGroupID> 
+    <ShowByDefault>false</ShowByDefault>
+  </TemplateData>
+  <TemplateContent>
+    <CustomParameters>
+      <CustomParameter Name="$SelectMaster$" Value="true" />
+      <CustomParameter Name="$language$" Value="C#" />
+      <CustomParameter Name="$viewdatatype$" Value="" />
+      <CustomParameter Name="$usingviewdatatype$" Value="" />
+      <CustomParameter Name="$ParentExtension$" Value=".aspx"/>
+      <CustomParameter Name="$ChildExtension$" Value=".cs"/>
+    </CustomParameters>
+    <ProjectItem SubType="" TargetFileName="$fileinputname$.aspx" ReplaceParameters="true">Views\Home\ViewContentPage.aspx</ProjectItem>
+  </TemplateContent>
+  <WizardExtension>
+    <Assembly>Microsoft.VisualStudio.Web.Mvc.2.0, Version=10.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35</Assembly>
+    <FullClassName>Microsoft.VisualStudio.Web.Mvc.ItemTemplateWizard</FullClassName>
+  </WizardExtension>
+</VSTemplate>

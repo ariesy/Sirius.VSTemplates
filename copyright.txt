@@ -1,0 +1,11 @@
+// -----------------------------------------------------------------------
+// <copyright file="$safeitemrootname$.cs"> 
+    // Author:Kun Zhu
+    // Time:$time$  
+    // CLR version£º$clrversion$  
+    // Blog£ºhttp://ariesyzhk@gmail.com 
+	// Code repository: http://github.com/ariesy
+    // $safeitemrootname$Copy right reserved by Kun Zhu. Please attach the version info when using this code.  
+    // Identity£º$guid1$  
+// </copyright>
+// -----------------------------------------------------------------------

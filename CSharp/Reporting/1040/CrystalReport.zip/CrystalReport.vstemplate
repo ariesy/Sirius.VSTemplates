@@ -1,0 +1,16 @@
+﻿
+<VSTemplate Type="Item" Version="3.0.0" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <Name>Crystal Report</Name>
+    <Description>Un file Crystal Report che pubblica dati in un form Windows o Web</Description>
+    <Icon>crw.ico</Icon>
+    <TemplateID>CrystalReports.CSharp.ItemTemplate</TemplateID>
+    <ProjectType>CSharp</ProjectType>
+    <RequiredFrameworkVersion>2.0</RequiredFrameworkVersion>
+    <DefaultName>CrystalReport.rpt</DefaultName>
+    <NumberOfParentCategoriesToRollUp>1</NumberOfParentCategoriesToRollUp>
+  </TemplateData>
+  <TemplateContent>
+    <ProjectItem OpenInWebBrowser="true" ReplaceParameters="true" SubType="" TargetFileName="$fileinputname$.mht">CrystalReportsForVisualStudio.mht</ProjectItem>
+  </TemplateContent>
+</VSTemplate>

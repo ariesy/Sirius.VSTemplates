@@ -1,0 +1,22 @@
+<VSTemplate Version="3.0.0" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" Type="Item">
+    <TemplateData>
+        <DefaultName>ViewMasterPage.Master</DefaultName>
+        <Name Package="{1F372076-D9CE-432D-BC4F-ABFF39671C5C}" ID="21106"/>
+        <Icon Package="{39c9c826-8ef8-4079-8c95-428f5b1c323f}" ID="4709"/>
+        <Description Package="{1F372076-D9CE-432D-BC4F-ABFF39671C5C}" ID="21107"/>
+        <ProjectType>CSharp</ProjectType>
+        <SortOrder>5</SortOrder>
+        <NumberOfParentCategoriesToRollUp>2</NumberOfParentCategoriesToRollUp>
+        <RequiredFrameworkVersion>4.0</RequiredFrameworkVersion>
+        <TemplateID>MvcViewMasterPageItemTemplate.cs.vstemplate.v301</TemplateID>
+        <TemplateGroupID>MVC3</TemplateGroupID>
+        <ShowByDefault>false</ShowByDefault>
+    </TemplateData>
+    <TemplateContent>
+        <CustomParameters>
+            <CustomParameter Name="$language$" Value="C#" />
+        </CustomParameters>
+        <References />
+        <ProjectItem SubType="" TargetFileName="$fileinputname$.Master" ReplaceParameters="true">Views\Shared\ViewMasterPage.Master</ProjectItem>
+    </TemplateContent>
+</VSTemplate>

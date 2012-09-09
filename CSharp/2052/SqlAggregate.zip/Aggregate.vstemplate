@@ -1,0 +1,16 @@
+﻿<VSTemplate Version="3.0.0" Type="Item" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <Name Package="{462b036f-7349-4835-9e21-bec60e989b9c}" ID="4596" />
+    <Description Package="{462b036f-7349-4835-9e21-bec60e989b9c}" ID="4597" />
+    <Icon Package="{462b036f-7349-4835-9e21-bec60e989b9c}" ID="4601" />
+    <ProjectType>CSharp</ProjectType>
+    <TemplateGroupID>SqlServerProjects</TemplateGroupID>
+    <TemplateID>SqlAggregate</TemplateID>
+    <ShowByDefault>false</ShowByDefault>
+    <SortOrder>5</SortOrder>
+    <DefaultName>Aggregate.cs</DefaultName>
+  </TemplateData>
+  <TemplateContent>
+    <ProjectItem ReplaceParameters="true">Aggregate.cs</ProjectItem>
+  </TemplateContent>
+</VSTemplate>

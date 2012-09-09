@@ -1,0 +1,1152 @@
+﻿<#@ template language="VB" debug="false" hostspecific="true"#>
+<#@ include file="EF.Utility.VB.ttinclude"#><#@
+ output extension=".vb"#><#
+' Copyright (c) Microsoft Corporation.  All rights reserved.
+
+Dim code As New CodeGenerationTools(Me)
+Dim ef As New MetadataTools(Me)
+Dim loader As New MetadataLoader(Me)
+Dim region As New CodeRegion(Me)
+
+Dim fileManager As EntityFrameworkTemplateFileManager = EntityFrameworkTemplateFileManager.Create(Me)
+
+Dim inputFile As String = "$edmxInputFile$"
+Dim ItemCollection As EdmItemCollection = loader.CreateEdmItemCollection(inputFile)
+Dim namespaceName As String = code.VsNamespaceSuggestion()
+
+Dim container As EntityContainer = ItemCollection.GetItems(Of EntityContainer)().FirstOrDefault()
+If container Is Nothing Then
+    Return "'$Localized_STECtx_Comment_10$"
+End If
+
+WriteHeader(fileManager)
+BeginNamespace(namespaceName, code)
+
+#>
+Partial <#=Accessibility.ForType(container)#> Class <#=code.Escape(container)#>
+    Inherits ObjectContext
+    Public Const SettingsConnectionString As String = "name=<#=container.Name#>"
+    Public Const ContainerName As String = "<#=container.Name#>"
+
+<#
+region.Begin("$Localized_STECtx_Comment_50$")
+#>
+
+    Public Sub New()
+        MyBase.New(SettingsConnectionString, ContainerName)
+        Initialize()
+    End Sub
+
+    Public Sub New(ByVal connectionString As String)
+        MyBase.New(connectionString, ContainerName)
+        Initialize()
+    End Sub
+
+    Public Sub New(ByVal connection As EntityConnection)
+        MyBase.New(connection, ContainerName)
+        Initialize()
+    End Sub
+
+    Private Sub Initialize()
+        '$Localized_STECtx_Comment_60$
+        '$Localized_STECtx_Comment_70$
+        ContextOptions.ProxyCreationEnabled = False
+        AddHandler ObjectMaterialized, AddressOf HandleObjectMaterialized
+    End Sub
+
+    Private Sub HandleObjectMaterialized(ByVal sender As Object, ByVal e As ObjectMaterializedEventArgs)
+        Dim entity As IObjectWithChangeTracker = TryCast(e.Entity, IObjectWithChangeTracker)
+        If entity IsNot Nothing Then
+            Dim changeTrackingEnabled As Boolean = entity.ChangeTracker.ChangeTrackingEnabled
+            Try
+                entity.MarkAsUnchanged()
+            Finally
+                entity.ChangeTracker.ChangeTrackingEnabled = changeTrackingEnabled
+            End Try
+            Me.StoreReferenceKeyValues(entity)
+        End If
+    End Sub
+<#
+region.End()
+
+region.Begin("$Localized_STECtx_Comment_80$")
+
+    For Each entitySet As EntitySet In container.BaseEntitySets.OfType(Of EntitySet)()
+#>
+
+    <#=Accessibility.ForReadOnlyProperty(entitySet)#> ReadOnly Property <#=code.Escape(entitySet)#>() As ObjectSet(Of <#=code.Escape(entitySet.ElementType)#>)
+        Get
+            If <#=code.FieldName(entitySet) #> Is Nothing Then
+                <#=code.FieldName(entitySet)#> = CreateObjectSet(Of <#=code.Escape(entitySet.ElementType)#>)("<#=entitySet.Name#>")
+            End If
+            Return <#=code.FieldName(entitySet)#>
+        End Get
+    End Property
+    Private <#=code.FieldName(entitySet)#> As ObjectSet(Of <#=code.Escape(entitySet.ElementType)#>)
+<#
+    Next
+
+region.End()
+
+region.Begin("$Localized_STECtx_Comment_90$")
+
+    For Each edmFunction As EdmFunction In container.FunctionImports
+        Dim parameters As IEnumerable(Of FunctionImportParameter)  = FunctionImportParameter.Create(edmFunction.Parameters, code, ef)
+        Dim paramList As String = String.Join(", ", parameters.Select(Function(p) "ByVal " & p.FunctionParameterName & " As " & p.FunctionParameterType).ToArray())
+        If edmFunction.ReturnParameter Is Nothing Then
+            Continue For
+        End If
+        Dim returnTypeElement As String = code.Escape(ef.GetElementType(edmFunction.ReturnParameter.TypeUsage))
+#>
+    <#=Accessibility.ForMethod(edmFunction)#> Function <#=code.Escape(edmFunction)#>(<#=paramList#>) As ObjectResult(Of <#=returnTypeElement#>)
+<#
+        For Each parameter As FunctionImportParameter In parameters
+            If Not parameter.NeedsLocalVariable Then
+                Continue For
+            End If
+#>
+        Dim <#=parameter.LocalVariableName#> As ObjectParameter
+
+        If <#=If(parameter.IsNullableOfT, parameter.FunctionParameterName & ".HasValue", parameter.FunctionParameterName & " IsNot Nothing")#> Then
+            <#=parameter.LocalVariableName#> = New ObjectParameter("<#=parameter.EsqlParameterName#>", <#=parameter.FunctionParameterName#>)
+        Else
+            <#=parameter.LocalVariableName#> = New ObjectParameter("<#=parameter.EsqlParameterName#>", GetType(<#=parameter.RawClrTypeName#>))
+        End If
+<#
+        Next
+#>
+        Return MyBase.ExecuteFunction(Of <#=returnTypeElement#>)("<#=edmFunction.Name#>"<#=code.StringBefore(", ", String.Join(", ", parameters.Select(Function(p) p.ExecuteParameterName).ToArray()))#>)
+    End Function
+<#
+    Next
+
+region.End()
+#>
+End Class
+<#
+EndNamespace(namespaceName)
+
+fileManager.StartNewFile(Path.GetFileNameWithoutExtension(Host.TemplateFile) & ".Extensions.vb")
+BeginNamespace(namespaceName, code)
+WriteApplyChanges(code)
+EndNamespace(namespaceName)
+
+fileManager.Process()
+#>
+<#+
+Private Sub WriteHeader(ByVal fileManager As EntityFrameworkTemplateFileManager, ByVal ParamArray extraUsings As String())
+    fileManager.StartHeader()
+#>
+'------------------------------------------------------------------------------
+' <auto-generated>
+'$Localized_STECtx_Comment_1160$
+'
+'$Localized_STECtx_Comment_1170$
+'$Localized_STECtx_Comment_1180$
+' </auto-generated>
+'------------------------------------------------------------------------------
+
+Imports System
+Imports System.Collections.Generic
+Imports System.ComponentModel
+Imports System.Data.Common
+Imports System.Data.EntityClient
+Imports System.Data.Metadata.Edm
+Imports System.Data.Objects.DataClasses
+Imports System.Data.Objects
+Imports System.Data
+Imports System.Diagnostics
+Imports System.Globalization
+Imports System.Linq
+Imports System.Runtime.CompilerServices
+<#=String.Join(String.Empty, extraUsings.Select(Function(u) "Imports " & u & Environment.NewLine).ToArray())#>
+<#+
+    fileManager.EndBlock()
+End Sub
+
+Private Sub BeginNamespace(ByVal namespaceName As String, ByVal code As CodeGenerationTools)
+    Dim region As CodeRegion = New CodeRegion(Me)
+    If Not String.IsNullOrEmpty(namespaceName) Then
+#>
+Namespace <#=code.EscapeNamespace(namespaceName)#>
+<#+
+        PushIndent(CodeRegion.GetIndent(1))
+    End If
+End Sub
+
+Private Sub EndNamespace(ByVal namespaceName As String)
+    If Not String.IsNullOrEmpty(namespaceName) Then
+        PopIndent()
+#>
+End Namespace
+<#+
+    End If
+End Sub
+
+Private Sub WriteApplyChanges(ByVal code As CodeGenerationTools)
+#>
+Public Module SelfTrackingEntitiesContextExtensions
+    ''' <summary>
+    ''' $Localized_STECtx_Comment_100$
+    ''' </summary>
+    ''' <typeparam name="TEntity">$Localized_STECtx_Comment_101$</typeparam>
+    ''' <param name="objectSet">$Localized_STECtx_Comment_102$</param>
+    ''' <param name="entity">$Localized_STECtx_Comment_103$</param>
+    <Extension()>
+    Public Sub ApplyChanges(Of TEntity As {Class, IObjectWithChangeTracker})(ByVal objectSet As ObjectSet(Of TEntity), ByVal entity As TEntity)
+        If objectSet Is Nothing Then
+            Throw New ArgumentNullException("objectSet")
+        End If
+
+        objectSet.Context.ApplyChanges(Of TEntity)(objectSet.EntitySet.EntityContainer.Name & "." & objectSet.EntitySet.Name, entity)
+    End Sub
+
+    ''' <summary>
+    ''' $Localized_STECtx_Comment_110$
+    ''' </summary>
+    ''' <typeparam name="TEntity">$Localized_STECtx_Comment_111$</typeparam>
+    ''' <param name="context">$Localized_STECtx_Comment_112$</param>
+    ''' <param name="entitySetName">$Localized_STECtx_Comment_113$</param>
+    ''' <param name="entity">$Localized_STECtx_Comment_114$</param>
+    <Extension()>
+    Public Sub ApplyChanges(Of TEntity As IObjectWithChangeTracker)(ByVal context As ObjectContext, ByVal entitySetName As String, ByVal entity As TEntity)
+        If context Is Nothing Then
+            Throw New ArgumentNullException("context")
+        End If
+
+        If String.IsNullOrEmpty(entitySetName) Then
+            Throw New ArgumentException("$Localized_STECtx_Comment_135$", "entitySetName")
+        End If
+
+        If entity Is Nothing Then
+            Throw New ArgumentNullException("entity")
+        End If
+
+
+        Dim lazyLoadingSetting As Boolean = context.ContextOptions.LazyLoadingEnabled
+        Try
+            context.ContextOptions.LazyLoadingEnabled = False
+
+            Dim entityIndex As EntityIndex = AddHelper.AddAllEntities(context, entitySetName, entity)
+            Dim allRelationships As New RelationshipSet(context, entityIndex.AllEntities)
+
+            '$Localized_STECtx_Comment_140$
+
+            For Each changedEntity As IObjectWithChangeTracker In entityIndex.AllEntities.Where(Function(x) x.ChangeTracker.State = ObjectState.Deleted)
+                HandleDeletedEntity(context, entityIndex, allRelationships, changedEntity)
+            Next
+
+            For Each changedEntity As IObjectWithChangeTracker In entityIndex.AllEntities.Where(Function(x) x.ChangeTracker.State <> ObjectState.Deleted)
+                HandleEntity(context, entityIndex, allRelationships, changedEntity)
+            Next
+
+            '$Localized_STECtx_Comment_150$
+
+            For Each changedEntity As IObjectWithChangeTracker In entityIndex.AllEntities
+                Dim entry As ObjectStateEntry = context.ObjectStateManager.GetObjectStateEntry(changedEntity)
+
+                Dim entityType As EntityType = context.MetadataWorkspace.GetCSpaceEntityType(changedEntity.GetType())
+
+                For Each navProp As NavigationProperty In entityType.NavigationProperties
+                    Dim relatedEnd As RelatedEnd = entry.GetRelatedEnd(navProp.Name)
+                    If Not DirectCast(relatedEnd.RelationshipSet.ElementType, AssociationType).IsForeignKey Then
+                        ApplyChangesToIndependentAssociation(context, DirectCast(changedEntity, IObjectWithChangeTracker), entry, navProp, relatedEnd, allRelationships)
+                    End If
+                Next
+            Next
+
+            '$Localized_STECtx_Comment_170$
+            For Each relationship As RelationshipWrapper In allRelationships
+                context.ObjectStateManager.ChangeRelationshipState(relationship.End0, relationship.End1, relationship.AssociationSet.ElementType.FullName, relationship.AssociationEndMembers(1).Name, relationship.State)
+            Next
+        Finally
+            context.ContextOptions.LazyLoadingEnabled = lazyLoadingSetting
+        End Try
+    End Sub
+
+    Private Sub ApplyChangesToIndependentAssociation(
+        ByVal context As ObjectContext,
+        ByVal changedEntity As IObjectWithChangeTracker,
+        ByVal entry As ObjectStateEntry,
+        ByVal navProp As NavigationProperty,
+        ByVal relatedEnd As IRelatedEnd,
+        ByVal allRelationships As RelationshipSet)
+
+        Dim changeTracker As ObjectChangeTracker = changedEntity.ChangeTracker
+
+        If changeTracker.State = ObjectState.Added Then
+            '$Localized_STECtx_Comment_180$
+            For Each relatedEntity As Object In relatedEnd
+                Dim addedRelationshipEntry As ObjectStateEntry = context.ObjectStateManager.ChangeRelationshipState(changedEntity, relatedEntity, navProp.Name, EntityState.Added)
+
+                allRelationships.Remove(addedRelationshipEntry)
+            Next
+        Else
+            If navProp.ToEndMember.RelationshipMultiplicity = RelationshipMultiplicity.Many Then
+                '$Localized_STECtx_Comment_190$
+                Dim collectionPropertyChanges As ObjectList = Nothing
+                If changeTracker.ObjectsRemovedFromCollectionProperties.TryGetValue(navProp.Name, collectionPropertyChanges) Then
+                    For Each removedEntityFromAssociation As Object In collectionPropertyChanges
+                        Dim deletedRelationshipEntry As ObjectStateEntry = context.ObjectStateManager.ChangeRelationshipState(changedEntity, removedEntityFromAssociation, navProp.Name, EntityState.Deleted)
+
+                        allRelationships.Remove(deletedRelationshipEntry)
+                    Next
+                End If
+
+                '$Localized_STECtx_Comment_200$
+                If changeTracker.ObjectsAddedToCollectionProperties.TryGetValue(navProp.Name, collectionPropertyChanges) Then
+                    For Each addedEntityFromAssociation As Object In collectionPropertyChanges
+                        Dim addedRelationshipEntry As ObjectStateEntry = context.ObjectStateManager.ChangeRelationshipState(changedEntity, addedEntityFromAssociation, navProp.Name, EntityState.Added)
+
+                        allRelationships.Remove(addedRelationshipEntry)
+                    Next
+                End If
+            Else
+
+                '$Localized_STECtx_Comment_210$
+                Dim originalReferenceValue As Object = Nothing
+                If changeTracker.OriginalValues.TryGetValue(navProp.Name, originalReferenceValue) Then
+                    If originalReferenceValue IsNot Nothing Then
+                        '$Localized_STECtx_Comment_220$
+                        Dim deletedRelationshipEntry As ObjectStateEntry = context.ObjectStateManager.ChangeRelationshipState(entry.Entity, originalReferenceValue, navProp.Name, EntityState.Deleted)
+
+                        allRelationships.Remove(deletedRelationshipEntry)
+                    End If
+
+                    '$Localized_STECtx_Comment_230$
+                    Dim currentReferenceValue As Object = Nothing
+                    For Each o As Object In relatedEnd
+                        currentReferenceValue = o
+                        Exit For
+                    Next
+                    If currentReferenceValue IsNot Nothing Then
+                        Dim addedRelationshipEntry As ObjectStateEntry = context.ObjectStateManager.ChangeRelationshipState(changedEntity, currentReferenceValue, navProp.Name, EntityState.Added)
+
+                        allRelationships.Remove(addedRelationshipEntry)
+                        '$Localized_STECtx_Comment_240$
+                        '$Localized_STECtx_Comment_250$
+                    End If
+                End If
+            End If
+        End If
+    End Sub
+
+    '$Localized_STECtx_Comment_260$
+    '$Localized_STECtx_Comment_270$
+    '$Localized_STECtx_Comment_280$
+    '$Localized_STECtx_Comment_290$
+    Private Sub HandleRelationshipKeys(ByVal context As ObjectContext, ByVal entityIndex As EntityIndex, ByVal allRelationships As RelationshipSet, ByVal entity As IObjectWithChangeTracker)
+        Dim changeTracker As ObjectChangeTracker = entity.ChangeTracker
+        If changeTracker.State = ObjectState.Unchanged OrElse changeTracker.State = ObjectState.Modified OrElse changeTracker.State = ObjectState.Deleted Then
+            Dim entry As ObjectStateEntry = context.ObjectStateManager.GetObjectStateEntry(entity)
+            Dim entityType As EntityType = context.MetadataWorkspace.GetCSpaceEntityType(entity.GetType())
+            Dim relationshipManager As RelationshipManager = context.ObjectStateManager.GetRelationshipManager(entity)
+
+            For Each entityReference As EntityReference In EnumerateSaveReferences(relationshipManager)
+                Dim associationSet As AssociationSet = DirectCast(entityReference.RelationshipSet, AssociationSet)
+                Dim fromEnd As AssociationEndMember = associationSet.AssociationSetEnds(entityReference.SourceRoleName).CorrespondingAssociationEndMember
+                Dim toEnd As AssociationEndMember = associationSet.AssociationSetEnds(entityReference.TargetRoleName).CorrespondingAssociationEndMember
+
+                '$Localized_STECtx_Comment_300$
+                Dim navigationProperty As NavigationProperty = entityType.NavigationProperties.SingleOrDefault( _
+                    Function(x) Equals(x.RelationshipType, associationSet.ElementType) AndAlso _
+                        Equals(x.FromEndMember, fromEnd) AndAlso _
+                        Equals(x.ToEndMember, toEnd))
+
+                '$Localized_STECtx_Comment_310$
+                '$Localized_STECtx_Comment_320$
+                '$Localized_STECtx_Comment_330$
+                '$Localized_STECtx_Comment_340$
+
+                Dim currentKey As EntityKey = GetSavedReferenceKey(entityIndex, entityReference, entity, navigationProperty, changeTracker.ExtendedProperties)
+
+                '$Localized_STECtx_Comment_350$
+                Dim originalValue As Object = Nothing
+                Dim originalKey As EntityKey = Nothing
+                Dim hasOriginalValue As Boolean = False
+                If changeTracker.OriginalValues IsNot Nothing Then
+                    '$Localized_STECtx_Comment_360$
+                    If navigationProperty IsNot Nothing Then
+                        hasOriginalValue = changeTracker.OriginalValues.TryGetValue(navigationProperty.Name, originalValue)
+                    End If
+                    '$Localized_STECtx_Comment_370$
+                    If Not hasOriginalValue OrElse originalValue Is Nothing Then
+                        originalKey = GetSavedReferenceKey(entityIndex, entityReference, entity, navigationProperty, changeTracker.OriginalValues)
+                    End If
+                End If
+
+                '$Localized_STECtx_Comment_380$
+                If currentKey IsNot Nothing Then
+                    '$Localized_STECtx_Comment_401$
+                    '$Localized_STECtx_Comment_402$
+                    Dim currentEntry As ObjectStateEntry = Nothing
+                    If context.ObjectStateManager.TryGetObjectStateEntry(currentKey, currentEntry) AndAlso currentEntry.Entity IsNot Nothing AndAlso currentEntry.State = EntityState.Deleted Then
+                        entityReference.EntityKey = Nothing
+                        MoveSavedReferenceKey(entityReference, entity, navigationProperty, changeTracker.ExtendedProperties, changeTracker.OriginalValues)
+                        originalKey = currentKey
+                    Else
+                        CreateRelationship(context, entityReference, entry.EntityKey, currentKey, If(originalKey Is Nothing, EntityState.Unchanged, EntityState.Added))
+                    End If
+                Else
+                    '$Localized_STECtx_Comment_390$
+                    '$Localized_STECtx_Comment_400$
+                    currentKey = entityReference.GetCurrentEntityKey(context)
+                End If
+
+                '$Localized_STECtx_Comment_420$
+                If originalKey IsNot Nothing Then
+                    '$Localized_STECtx_Comment_430$
+                    '$Localized_STECtx_Comment_440$
+                    Dim originalEntry As ObjectStateEntry = Nothing
+                    Dim deletedRelationshipEntry As ObjectStateEntry = Nothing
+                    If context.ObjectStateManager.TryGetObjectStateEntry(originalKey, originalEntry) AndAlso originalEntry.Entity IsNot Nothing AndAlso originalEntry.State = EntityState.Deleted Then
+                        allRelationships.Add(entityReference, entry.Entity, originalEntry.Entity, EntityState.Deleted)
+                    Else
+                        '$Localized_STECtx_Comment_450$
+                        Dim currentRelationshipState As EntityState = DetachRelationship(context, entityReference, entry, currentKey)
+
+                        '$Localized_STECtx_Comment_455$
+                        Dim targetRelationshipState As EntityState = EntityState.Detached
+                        Dim targetReference As EntityReference = Nothing
+                        Dim targetKey As EntityKey = Nothing
+                        If originalEntry IsNot Nothing AndAlso
+                           originalEntry.Entity IsNot Nothing AndAlso
+                           originalEntry.RelationshipManager IsNot Nothing AndAlso
+                           associationSet.AssociationSetEnds(fromEnd.Name).CorrespondingAssociationEndMember.RelationshipMultiplicity <> RelationshipMultiplicity.Many Then
+                            targetReference = TryCast(originalEntry.RelationshipManager.GetRelatedEnd(entityReference.RelationshipName, entityReference.SourceRoleName), EntityReference)
+                            targetKey = targetReference.GetCurrentEntityKey(context)
+                            If targetKey IsNot Nothing Then
+                                targetRelationshipState = DetachRelationship(context, targetReference, originalEntry, targetKey)
+                            End If
+                        End If
+
+                        '$Localized_STECtx_Comment_460$
+                        deletedRelationshipEntry = CreateRelationship(context, entityReference, entry.EntityKey, originalKey, EntityState.Deleted)
+
+                        '$Localized_STECtx_Comment_462$
+                        CreateRelationship(context, entityReference, entry.EntityKey, currentKey, currentRelationshipState)
+
+                        '$Localized_STECtx_Comment_465$
+                        If targetKey IsNot Nothing Then
+                            CreateRelationship(context, targetReference, originalEntry.EntityKey, targetKey, targetRelationshipState)
+                        End If
+                    End If
+                    If deletedRelationshipEntry IsNot Nothing Then
+                        '$Localized_STECtx_Comment_468$
+                        allRelationships.Remove(deletedRelationshipEntry)
+                    End If
+                ElseIf currentKey Is Nothing AndAlso originalValue IsNot Nothing AndAlso entityReference.IsDependentEndOfReferentialConstraint() Then
+                    '$Localized_STECtx_Comment_470$
+                    '$Localized_STECtx_Comment_471$
+                    '$Localized_STECtx_Comment_472$
+                    context.ObjectStateManager.ChangeRelationshipState(entry.Entity, originalValue, entityReference.RelationshipName, entityReference.TargetRoleName, EntityState.Added)
+                End If
+            Next
+        End If
+    End Sub
+
+    Private Function CreateRelationship(ByVal context As ObjectContext, ByVal entityReference As EntityReference, ByVal fromKey As EntityKey, ByVal toKey As EntityKey, ByVal state As EntityState) As ObjectStateEntry
+        If state <> EntityState.Detached Then
+            Dim associationSet As AssociationSet = DirectCast(entityReference.RelationshipSet, AssociationSet)
+            Dim fromEnd As AssociationEndMember = associationSet.AssociationSetEnds(entityReference.SourceRoleName).CorrespondingAssociationEndMember
+            Dim toEnd As AssociationEndMember = associationSet.AssociationSetEnds(entityReference.TargetRoleName).CorrespondingAssociationEndMember
+
+            '$Localized_STECtx_Comment_480$
+            Debug.Assert(toKey IsNot Nothing, "$Localized_STECtx_Comment_490$")
+
+            If toKey.IsTemporary Then
+                '$Localized_STECtx_Comment_500$
+                entityReference.EntityKey = Nothing
+
+                '$Localized_STECtx_Comment_510$
+                Dim targetEntry As ObjectStateEntry = Nothing
+                context.ObjectStateManager.TryGetObjectStateEntry(toKey, targetEntry)
+                Debug.Assert(targetEntry IsNot Nothing, "$Localized_STECtx_Comment_520$")
+                DirectCast(entityReference, IRelatedEnd).Add(targetEntry.Entity)
+            Else
+                entityReference.EntityKey = toKey
+            End If
+
+            Dim relationshipEntry As ObjectStateEntry = Nothing
+            Dim found As Boolean = context.TryGetObjectStateEntry(fromKey, toKey, associationSet, fromEnd, toEnd, relationshipEntry)
+            Debug.Assert(found, "$Localized_STECtx_Comment_530$")
+
+            Select Case state
+                Case EntityState.Added
+                Case EntityState.Unchanged
+                    relationshipEntry.AcceptChanges()
+                Case EntityState.Deleted
+                    relationshipEntry.AcceptChanges()
+                    entityReference.EntityKey = Nothing
+            End Select
+            Return relationshipEntry
+        End If
+        Return Nothing
+    End Function
+
+    Private Function DetachRelationship(ByVal context As ObjectContext, ByVal entityReference As EntityReference, ByVal fromEntry As ObjectStateEntry, ByVal toKey As EntityKey) As EntityState
+        Dim currentRelationshipState As EntityState = EntityState.Detached
+
+        If toKey IsNot Nothing Then
+            Dim associationSet As AssociationSet = DirectCast(entityReference.RelationshipSet, AssociationSet)
+            Dim fromEnd As AssociationEndMember = associationSet.AssociationSetEnds(entityReference.SourceRoleName).CorrespondingAssociationEndMember
+            Dim toEnd As AssociationEndMember = associationSet.AssociationSetEnds(entityReference.TargetRoleName).CorrespondingAssociationEndMember
+
+            Dim currentRelationshipEntry As ObjectStateEntry = Nothing
+
+            If context.TryGetObjectStateEntry(fromEntry.EntityKey, toKey, associationSet, fromEnd, toEnd, currentRelationshipEntry) Then
+                currentRelationshipState = currentRelationshipEntry.State
+
+                entityReference.EntityKey = Nothing
+                If currentRelationshipEntry.State = EntityState.Deleted Then
+                    currentRelationshipEntry.AcceptChanges()
+                End If
+                Debug.Assert(currentRelationshipEntry.State = EntityState.Detached, "$Localized_STECtx_Comment_540$")
+            End If
+        End If
+        Return currentRelationshipState
+    End Function
+
+    Private Function CreateReferenceKeyLookup(ByVal keyMemberName As String, ByVal reference As EntityReference, ByVal navigationProperty As NavigationProperty) As String
+        '$Localized_STECtx_Comment_550$
+        '$Localized_STECtx_Comment_560$
+        If navigationProperty IsNot Nothing Then
+            Return String.Format(CultureInfo.InvariantCulture, "{0}.{1}", navigationProperty.Name, keyMemberName)
+        Else
+            Return String.Format(CultureInfo.InvariantCulture, "Navigate({0}.{1}).{2}", reference.RelationshipSet.ElementType.FullName, reference.TargetRoleName, keyMemberName)
+        End If
+    End Function
+
+    '$Localized_STECtx_Comment_570$
+    '$Localized_STECtx_Comment_580$
+    Private Function GetSavedReferenceKey(
+        ByVal entityIndex As EntityIndex,
+        ByVal reference As EntityReference,
+        ByVal entity As Object,
+        ByVal navigationProperty As NavigationProperty,
+        ByVal values As IDictionary(Of String, Object)) As EntityKey
+
+        Debug.Assert(navigationProperty Is Nothing OrElse Equals(reference.RelationshipSet.ElementType, navigationProperty.RelationshipType), "$Localized_STECtx_Comment_590$")
+
+        Dim entitySet As EntitySet = DirectCast(reference.RelationshipSet, AssociationSet).AssociationSetEnds(reference.TargetRoleName).EntitySet
+
+        Dim foundKeyMembers As New List(Of EntityKeyMember)(1)
+        Dim foundNone As Boolean = True
+        Dim missingSome As Boolean = False
+        For Each keyMember As EdmMember In entitySet.ElementType.KeyMembers
+            Dim lookupKey As String = CreateReferenceKeyLookup(keyMember.Name, reference, navigationProperty)
+            Dim value As Object = Nothing
+            If values.TryGetValue(lookupKey, value) Then
+                foundKeyMembers.Add(New EntityKeyMember(keyMember.Name, value))
+                foundNone = False
+            Else
+                missingSome = True
+            End If
+        Next
+
+        If foundNone Then
+            '$Localized_STECtx_Comment_600$
+            Return Nothing
+        ElseIf missingSome Then
+            Throw New InvalidOperationException(
+                String.Format(
+                    CultureInfo.CurrentCulture,
+                    "$Localized_STECtx_Comment_610$",
+                    entity.GetType().FullName,
+                    reference.RelationshipName,
+                    reference.TargetRoleName))
+        End If
+
+        Return entityIndex.ConvertEntityKey(New EntityKey(reference.GetEntitySetName(), foundKeyMembers))
+    End Function
+
+    '$Localized_STECtx_Comment_611$
+    Private Sub MoveSavedReferenceKey(
+        ByVal reference As EntityReference,
+        ByVal entity As Object,
+        ByVal navigationProperty As NavigationProperty,
+        ByVal sourceValues As IDictionary(Of String, Object),
+        ByVal targetValues As IDictionary(Of String, Object))
+
+        Debug.Assert(navigationProperty Is Nothing OrElse Equals(reference.RelationshipSet.ElementType, navigationProperty.RelationshipType), "$Localized_STECtx_Comment_612$")
+
+        Dim entitySet As EntitySet = DirectCast(reference.RelationshipSet, AssociationSet).AssociationSetEnds(reference.TargetRoleName).EntitySet
+
+        Dim missingSome As Boolean = False
+        For Each keyMember As EdmMember In entitySet.ElementType.KeyMembers
+            Dim lookupKey As String = CreateReferenceKeyLookup(keyMember.Name, reference, navigationProperty)
+            Dim value As Object = Nothing
+            If sourceValues.TryGetValue(lookupKey, value) Then
+                If targetValues.ContainsKey(lookupKey) Then
+                    targetValues(lookupKey) = value
+                Else
+                    targetValues.Add(lookupKey, value)
+                End If
+                sourceValues.Remove(lookupKey)
+            Else
+                missingSome = True
+            End If
+        Next
+        If missingSome Then
+            Throw New InvalidOperationException(
+                String.Format(
+                    CultureInfo.CurrentCulture,
+                    "$Localized_STECtx_Comment_613$",
+                    entity.GetType().FullName,
+                    reference.RelationshipName,
+                    reference.TargetRoleName))
+        End If
+    End Sub
+
+    Private Function EnumerateSaveReferences(ByVal manager As RelationshipManager) As IEnumerable(Of EntityReference)
+        Return manager.GetAllRelatedEnds().OfType(Of EntityReference)().Where(
+            Function(er) er.RelationshipSet.ElementType.RelationshipEndMembers(er.SourceRoleName).RelationshipMultiplicity <> RelationshipMultiplicity.One AndAlso _
+                Not DirectCast(er.RelationshipSet, AssociationSet).ElementType.IsForeignKey)
+    End Function
+
+    <Extension()>
+    Friend Sub StoreReferenceKeyValues(ByVal context As ObjectContext, ByVal entity As IObjectWithChangeTracker)
+        If entity Is Nothing Then
+            Throw New ArgumentNullException("entity")
+        End If
+
+        Dim entry As ObjectStateEntry = Nothing
+        If Not context.ObjectStateManager.TryGetObjectStateEntry(entity, entry) Then
+            '$Localized_STECtx_Comment_615$
+            Return
+        End If
+
+        Dim relationshipManager As RelationshipManager = entry.RelationshipManager
+        Dim entityType As EntityType = context.MetadataWorkspace.GetCSpaceEntityType(entity.GetType())
+        For Each loopEntityReference As EntityReference In EnumerateSaveReferences(relationshipManager)
+            Dim entityReference As EntityReference = loopEntityReference
+            Dim navigationProperty As NavigationProperty = entityType.NavigationProperties.FirstOrDefault( _
+                Function(n) n.RelationshipType Is entityReference.RelationshipSet.ElementType AndAlso _
+                    n.FromEndMember.Name = entityReference.SourceRoleName AndAlso _
+                    n.ToEndMember.Name = entityReference.TargetRoleName)
+
+            Dim value As Object = entityReference.GetValue()
+            If (navigationProperty Is Nothing OrElse value Is Nothing) AndAlso entityReference.EntityKey IsNot Nothing Then
+                For Each item As EntityKeyMember In entityReference.EntityKey.EntityKeyValues
+                    Dim key As String = CreateReferenceKeyLookup(item.Key, entityReference, navigationProperty)
+                    entity.ChangeTracker.ExtendedProperties.Add(key, item.Value)
+                Next
+            End If
+        Next
+    End Sub
+
+    Private Sub HandleEntity(ByVal context As ObjectContext, ByVal entityIndex As EntityIndex, ByVal allRelationships As RelationshipSet, ByVal entity As IObjectWithChangeTracker)
+        ChangeEntityStateBasedOnObjectState(context, entity)
+        HandleRelationshipKeys(context, entityIndex, allRelationships, entity)
+        UpdateOriginalValues(context, entity)
+    End Sub
+
+    Private Sub HandleDeletedEntity(ByVal context As ObjectContext, ByVal entityIndex As EntityIndex, ByVal allRelationships As RelationshipSet, ByVal entity As IObjectWithChangeTracker)
+        HandleRelationshipKeys(context, entityIndex, allRelationships, entity)
+        ChangeEntityStateBasedOnObjectState(context, entity)
+        UpdateOriginalValues(context, entity)
+    End Sub
+
+    Private Sub UpdateOriginalValues(ByVal context As ObjectContext, ByVal entity As IObjectWithChangeTracker)
+        If entity.ChangeTracker.State = ObjectState.Unchanged OrElse entity.ChangeTracker.State = ObjectState.Added OrElse entity.ChangeTracker.OriginalValues Is Nothing Then
+            '$Localized_STECtx_Comment_630$
+            Exit Sub
+        End If
+
+        '$Localized_STECtx_Comment_640$
+
+        Dim entry As ObjectStateEntry = context.ObjectStateManager.GetObjectStateEntry(entity)
+        Dim originalValueRecord As OriginalValueRecord = entry.GetUpdatableOriginalValues()
+        Dim entityType As EntityType = context.MetadataWorkspace.GetCSpaceEntityType(entity.GetType())
+
+        '$Localized_STECtx_Comment_650$
+        '$Localized_STECtx_Comment_660$
+        '$Localized_STECtx_Comment_670$
+        '
+        '$Localized_STECtx_Comment_680$
+        '$Localized_STECtx_Comment_690$
+        For Each edmProperty As EdmProperty In entityType.Properties
+            Dim value As Object = Nothing
+            If TypeOf edmProperty.TypeUsage.EdmType Is PrimitiveType AndAlso entity.ChangeTracker.OriginalValues.TryGetValue(edmProperty.Name, value) Then
+                originalValueRecord.SetValue(edmProperty, value)
+            ElseIf TypeOf edmProperty.TypeUsage.EdmType Is ComplexType Then
+                Dim complexOriginalValues As OriginalValueRecord = originalValueRecord.GetOriginalValueRecord(edmProperty.Name)
+                UpdateOriginalValues(DirectCast(edmProperty.TypeUsage.EdmType, ComplexType), entity.GetType().FullName, edmProperty.Name, entity.ChangeTracker.OriginalValues, complexOriginalValues)
+            End If
+        Next
+    End Sub
+
+    Private Sub UpdateOriginalValues(
+        ByVal complexType As ComplexType,
+        ByVal entityTypeName As String,
+        ByVal propertyPathToType As String,
+        ByVal originalValueSource As IDictionary(Of String, Object),
+        ByVal complexOriginalValueRecord As OriginalValueRecord)
+
+        '$Localized_STECtx_Comment_700$
+        '$Localized_STECtx_Comment_710$
+        '$Localized_STECtx_Comment_720$
+
+        '$Localized_STECtx_Comment_730$
+        '$Localized_STECtx_Comment_740$
+        '$Localized_STECtx_Comment_750$
+        For Each edmProperty As EdmProperty In complexType.Properties
+            Dim value As Object = Nothing
+            Dim propertyPath As String = String.Format(CultureInfo.InvariantCulture, "{0}.{1}", propertyPathToType, edmProperty.Name)
+            If TypeOf edmProperty.TypeUsage.EdmType Is PrimitiveType AndAlso originalValueSource.TryGetValue(propertyPath, value) Then
+                If complexOriginalValueRecord IsNot Nothing Then
+                    complexOriginalValueRecord.SetValue(edmProperty, value)
+                ElseIf value IsNot Nothing Then
+                    Debug.Assert(complexOriginalValueRecord Is Nothing, "$Localized_STECtx_Comment_760$")
+                    Throw New InvalidOperationException(
+                        String.Format(
+                            CultureInfo.CurrentCulture,
+                            "$Localized_STECtx_Comment_770$",
+                            propertyPathToType,
+                            entityTypeName))
+                End If
+            ElseIf TypeOf edmProperty.TypeUsage.EdmType Is ComplexType Then
+                Dim nestedOriginalValueRecord As OriginalValueRecord = Nothing
+                If complexOriginalValueRecord IsNot Nothing Then
+                    nestedOriginalValueRecord = complexOriginalValueRecord.GetOriginalValueRecord(edmProperty.Name)
+                End If
+                '$Localized_STECtx_Comment_780$
+                UpdateOriginalValues(DirectCast(edmProperty.TypeUsage.EdmType, ComplexType), entityTypeName, propertyPath, originalValueSource, nestedOriginalValueRecord)
+            End If
+        Next
+    End Sub
+
+    <Extension()>
+    Private Function GetOriginalValueRecord(ByVal record As OriginalValueRecord, ByVal name As String) As OriginalValueRecord
+        Dim ordinal As Integer = record.GetOrdinal(name)
+        If Not record.IsDBNull(ordinal) Then
+            Return TryCast(record.GetDataRecord(ordinal), OriginalValueRecord)
+        Else
+            Return Nothing
+        End If
+    End Function
+
+    <Extension()>
+    Private Sub SetValue(ByVal record As OriginalValueRecord, ByVal edmProperty As EdmProperty, ByVal value As Object)
+        If value Is Nothing Then
+            Dim entityClrType As Type = DirectCast(edmProperty.TypeUsage.EdmType, PrimitiveType).ClrEquivalentType
+            If entityClrType.IsValueType AndAlso Not (entityClrType.IsGenericType AndAlso GetType(Nullable(Of )) Is entityClrType.GetGenericTypeDefinition()) Then
+                '$Localized_STECtx_Comment_785$
+                Return
+            End If
+        End If
+
+        Dim ordinal As Integer = record.GetOrdinal(edmProperty.Name)
+        record.SetValue(ordinal, value)
+    End Sub
+
+    Private Sub ChangeEntityStateBasedOnObjectState(ByVal context As ObjectContext, ByVal entity As IObjectWithChangeTracker)
+        Select Case entity.ChangeTracker.State
+            Case (ObjectState.Added)
+                '$Localized_STECtx_Comment_790$
+                Debug.Assert(context.ObjectStateManager.GetObjectStateEntry(entity).State = EntityState.Added, "$Localized_STECtx_Comment_800$")
+            Case (ObjectState.Unchanged)
+                context.ObjectStateManager.ChangeObjectState(entity, EntityState.Unchanged)
+            Case (ObjectState.Modified)
+                context.ObjectStateManager.ChangeObjectState(entity, EntityState.Modified)
+            Case (ObjectState.Deleted)
+                context.ObjectStateManager.ChangeObjectState(entity, EntityState.Deleted)
+        End Select
+    End Sub
+
+    <Extension()>
+    Private Function GetCSpaceEntityType(ByVal workspace As MetadataWorkspace, ByVal type As Type) As EntityType
+        Dim ospaceEntityType As EntityType = Nothing
+        Dim cspaceEntityType As StructuralType = Nothing
+        Dim resultEntityType As EntityType = Nothing
+        If workspace.TryGetItem(Of EntityType)(type.FullName, DataSpace.OSpace, ospaceEntityType) Then
+            If workspace.TryGetEdmSpaceType(ospaceEntityType, cspaceEntityType) Then
+                resultEntityType = TryCast(cspaceEntityType, EntityType)
+            End If
+        End If
+        If resultEntityType Is Nothing Then
+            Throw New ArgumentException(String.Format(CultureInfo.CurrentCulture, "$Localized_STECtx_Comment_810$", type.FullName))
+        End If
+        Return resultEntityType
+    End Function
+
+    <Extension()>
+    Private Function GetValue(ByVal entityReference As System.Data.Objects.DataClasses.EntityReference) As Object
+        For Each value As Object In entityReference
+            Return value
+        Next
+        Return Nothing
+    End Function
+
+    <Extension()>
+    Private Function GetCurrentEntityKey(ByVal entityReference As System.Data.Objects.DataClasses.EntityReference, ByVal context As ObjectContext) As EntityKey
+        Dim currentKey As EntityKey = Nothing
+        Dim currentValue As Object = entityReference.GetValue()
+        If currentValue IsNot Nothing Then
+            Dim relatedEntry As ObjectStateEntry = context.ObjectStateManager.GetObjectStateEntry(currentValue)
+            currentKey = relatedEntry.EntityKey
+        Else
+            currentKey = entityReference.EntityKey
+        End If
+        Return currentKey
+    End Function
+
+    <Extension()>
+    Private Function GetRelatedEnd(ByVal entry As ObjectStateEntry, ByVal navigationPropertyIdentity As String) As RelatedEnd
+        Dim navigationProperty As NavigationProperty = GetNavigationProperty(entry.ObjectStateManager.MetadataWorkspace.GetCSpaceEntityType(entry.Entity.GetType()), navigationPropertyIdentity)
+        Return TryCast(entry.RelationshipManager.GetRelatedEnd(navigationProperty.RelationshipType.FullName, navigationProperty.ToEndMember.Name), RelatedEnd)
+    End Function
+
+    <Extension()>
+    Private Function GetNavigationProperty(ByVal entityType As EntityType, ByVal navigationPropertyIdentity As String) As NavigationProperty
+        Dim navigationProperty As NavigationProperty = Nothing
+        If Not entityType.NavigationProperties.TryGetValue(navigationPropertyIdentity, False, navigationProperty) Then
+            Throw New InvalidOperationException(
+                String.Format(
+                    CultureInfo.CurrentCulture,
+                    "$Localized_STECtx_Comment_820$",
+                    navigationPropertyIdentity,
+                    entityType.FullName))
+        End If
+        Return navigationProperty
+    End Function
+
+    <Extension()>
+    Private Function GetEntitySetName(ByVal relatedEnd As RelatedEnd) As String
+        Dim entitySet As EntitySet = DirectCast(relatedEnd.RelationshipSet, AssociationSet).AssociationSetEnds(relatedEnd.TargetRoleName).EntitySet
+        Return (entitySet.EntityContainer.Name & ".") & entitySet.Name
+    End Function
+
+    <Extension()>
+    Private Function IsDependentEndOfReferentialConstraint(ByVal relatedEnd As RelatedEnd) As Boolean
+        If relatedEnd.RelationshipSet IsNot Nothing Then
+            '$Localized_STECtx_Comment_830$
+            '$Localized_STECtx_Comment_840$
+            For Each constraint As ReferentialConstraint In DirectCast(relatedEnd.RelationshipSet.ElementType, AssociationType).ReferentialConstraints
+                If constraint.ToRole.Name = relatedEnd.SourceRoleName Then
+                    '$Localized_STECtx_Comment_850$
+                    '$Localized_STECtx_Comment_860$
+                    '$Localized_STECtx_Comment_870$
+                    '$Localized_STECtx_Comment_880$
+                    '$Localized_STECtx_Comment_890$
+                    Return True
+                End If
+            Next
+        End If
+        Return False
+    End Function
+
+    <Extension()>
+    Private Function TryGetObjectStateEntry(
+        ByVal context As ObjectContext,
+        ByVal fromKey As EntityKey,
+        ByVal toKey As EntityKey,
+        ByVal associationSet As AssociationSet,
+        ByVal fromEnd As AssociationEndMember,
+        ByVal toEnd As AssociationEndMember,
+        ByRef entry As ObjectStateEntry) As Boolean
+
+        entry = Nothing
+        For Each relationshipEntry As ObjectStateEntry In (
+                    From e In context.ObjectStateManager.GetObjectStateEntries(EntityState.Added Or EntityState.Unchanged)
+                    Where e.IsRelationship AndAlso Equals(e.EntitySet, associationSet)
+                    Select e)
+            Dim currentValues As CurrentValueRecord = relationshipEntry.CurrentValues
+            Dim fromOrdinal As Integer = currentValues.GetOrdinal(fromEnd.Name)
+            Dim toOrdinal As Integer = currentValues.GetOrdinal(toEnd.Name)
+            If DirectCast(currentValues.GetValue(fromOrdinal), EntityKey) = fromKey AndAlso DirectCast(currentValues.GetValue(toOrdinal), EntityKey) = toKey Then
+                entry = relationshipEntry
+                Return True
+            End If
+        Next
+        Return False
+    End Function
+
+    Private NotInheritable Class AddHelper
+        Private ReadOnly _context As ObjectContext
+        Private ReadOnly _entityIndex As EntityIndex
+
+        '$Localized_STECtx_Comment_900$
+        Private ReadOnly _entitiesToAdd As Queue(Of Tuple(Of String, IObjectWithChangeTracker))
+        Private ReadOnly _entitiesDuringAdd As Queue(Of Tuple(Of ObjectStateEntry, String, IEnumerable(Of Object)))
+
+        Public Shared Function AddAllEntities(ByVal context As ObjectContext, ByVal entitySetName As String, ByVal entity As IObjectWithChangeTracker) As EntityIndex
+            Dim addHelper As New AddHelper(context)
+
+            Try
+                '$Localized_STECtx_Comment_910$
+                addHelper.QueueAdd(entitySetName, entity)
+
+                '$Localized_STECtx_Comment_920$
+                While addHelper.HasMore
+                    Dim entityInSet As Tuple(Of String, IObjectWithChangeTracker) = addHelper.NextAdd()
+                    '$Localized_STECtx_Comment_930$
+                    Dim entry As ObjectStateEntry = Nothing
+                    If Not context.ObjectStateManager.TryGetObjectStateEntry(entityInSet.Item2, entry) Then
+                        context.AddObject(entityInSet.Item1, entityInSet.Item2)
+                    End If
+                End While
+            Finally
+                addHelper.Detach()
+            End Try
+            Return addHelper.EntityIndex
+        End Function
+
+        Private Sub New(ByVal context As ObjectContext)
+            _context = context
+            AddHandler _context.ObjectStateManager.ObjectStateManagerChanged, AddressOf Me.HandleStateManagerChange
+
+            _entityIndex = New EntityIndex(context)
+            _entitiesToAdd = New Queue(Of Tuple(Of String, IObjectWithChangeTracker))()
+            _entitiesDuringAdd = New Queue(Of Tuple(Of ObjectStateEntry, String, IEnumerable(Of Object)))()
+        End Sub
+
+        Private Sub Detach()
+            RemoveHandler _context.ObjectStateManager.ObjectStateManagerChanged, AddressOf Me.HandleStateManagerChange
+        End Sub
+
+        Private Sub HandleStateManagerChange(ByVal sender As Object, ByVal args As CollectionChangeEventArgs)
+            If args.Action = CollectionChangeAction.Add Then
+                Dim entity As Object = args.Element
+                Dim entry As ObjectStateEntry = _context.ObjectStateManager.GetObjectStateEntry(entity)
+                Dim changeTracker As ObjectChangeTracker = DirectCast(entity, IObjectWithChangeTracker).ChangeTracker
+
+                changeTracker.ChangeTrackingEnabled = False
+                _entityIndex.Add(entry, changeTracker)
+
+                '$Localized_STECtx_Comment_940$
+                Dim navPropNames As IEnumerable(Of String) = _context.MetadataWorkspace.GetCSpaceEntityType(entity.GetType()).NavigationProperties.Select(Function(n) n.Name)
+                Dim entityRefOriginalValues As IEnumerable(Of KeyValuePair(Of String, Object)) = changeTracker.OriginalValues.Where(Function(kvp) navPropNames.Contains(kvp.Key))
+                For Each originalValueWithName As KeyValuePair(Of String, Object) In entityRefOriginalValues
+                    If originalValueWithName.Value IsNot Nothing Then
+                        _entitiesDuringAdd.Enqueue(New Tuple(Of ObjectStateEntry, String, IEnumerable(Of Object))(entry, originalValueWithName.Key, New Object() {originalValueWithName.Value}))
+                    End If
+                Next
+
+                '$Localized_STECtx_Comment_950$
+                For Each collectionPropertyChangesWithName As KeyValuePair(Of String, ObjectList) In changeTracker.ObjectsRemovedFromCollectionProperties
+                    _entitiesDuringAdd.Enqueue(New Tuple(Of ObjectStateEntry, String, IEnumerable(Of Object))(entry, collectionPropertyChangesWithName.Key, collectionPropertyChangesWithName.Value))
+                Next
+            End If
+        End Sub
+
+        Private ReadOnly Property EntityIndex() As EntityIndex
+            Get
+                Return _entityIndex
+            End Get
+        End Property
+
+        Private ReadOnly Property HasMore() As Boolean
+            Get
+                ProcessNewAdds()
+                Return _entitiesToAdd.Count > 0
+            End Get
+        End Property
+
+        Private Sub QueueAdd(ByVal entitySetName As String, ByVal entity As IObjectWithChangeTracker)
+            If Not _entityIndex.Contains(entity) Then
+                '$Localized_STECtx_Comment_960$
+                _entitiesToAdd.Enqueue(New Tuple(Of String, IObjectWithChangeTracker)(entitySetName, entity))
+            End If
+        End Sub
+
+        Private Function NextAdd() As Tuple(Of String, IObjectWithChangeTracker)
+            ProcessNewAdds()
+            Return _entitiesToAdd.Dequeue()
+        End Function
+
+        Private Sub ProcessNewAdds()
+            While _entitiesDuringAdd.Count > 0
+                Dim relatedEntities As Tuple(Of ObjectStateEntry, String, IEnumerable(Of Object)) = _entitiesDuringAdd.Dequeue()
+                Dim relatedEnd As RelatedEnd = relatedEntities.Item1.GetRelatedEnd(relatedEntities.Item2)
+                Dim entitySetName As String = relatedEnd.GetEntitySetName()
+
+                For Each targetEntity As Object In relatedEntities.Item3
+                    QueueAdd(entitySetName, CType(targetEntity, IObjectWithChangeTracker))
+                Next
+            End While
+        End Sub
+    End Class
+
+    Private NotInheritable Class EntityIndex
+        Private ReadOnly _context As ObjectContext
+
+        '$Localized_STECtx_Comment_970$
+        Private ReadOnly _allEntities As HashSet(Of IObjectWithChangeTracker)
+
+        '$Localized_STECtx_Comment_980$
+        '$Localized_STECtx_Comment_990$
+        Private ReadOnly _temporaryKeyMap As Dictionary(Of EntityKey, EntityKey)
+
+        Public Sub New(ByVal context As ObjectContext)
+            _context = context
+
+            _allEntities = New HashSet(Of IObjectWithChangeTracker)()
+            _temporaryKeyMap = New Dictionary(Of EntityKey, EntityKey)()
+        End Sub
+
+        Public Sub Add(ByVal entry As ObjectStateEntry, ByVal changeTracker As ObjectChangeTracker)
+            Dim temporaryKey As EntityKey = entry.EntityKey
+            Dim finalKey As EntityKey
+
+            If Not _allEntities.Contains(DirectCast(entry.Entity, IObjectWithChangeTracker)) Then
+                '$Localized_STECtx_Comment_1000$
+                _allEntities.Add(DirectCast(entry.Entity, IObjectWithChangeTracker))
+            End If
+
+            If changeTracker.State = ObjectState.Added Then
+                finalKey = temporaryKey
+            Else
+                finalKey = _context.CreateEntityKey((temporaryKey.EntityContainerName & ".") & temporaryKey.EntitySetName, entry.Entity)
+            End If
+            If Not _temporaryKeyMap.ContainsKey(finalKey) Then
+                _temporaryKeyMap.Add(finalKey, temporaryKey)
+            End If
+        End Sub
+
+        Public Function Contains(ByVal entity As Object) As Boolean
+            Return _allEntities.Contains(DirectCast(entity, IObjectWithChangeTracker))
+        End Function
+
+        Public ReadOnly Property AllEntities() As IEnumerable(Of IObjectWithChangeTracker)
+            Get
+                Return _allEntities
+            End Get
+        End Property
+
+        '$Localized_STECtx_Comment_1010$
+        Public Function ConvertEntityKey(ByVal targetKey As EntityKey) As EntityKey
+            Dim targetEntry As ObjectStateEntry = Nothing
+            If Not _context.ObjectStateManager.TryGetObjectStateEntry(targetKey, targetEntry) Then
+                '$Localized_STECtx_Comment_1020$
+                '$Localized_STECtx_Comment_1030$
+                '$Localized_STECtx_Comment_1040$
+                Dim temporaryKey As EntityKey = Nothing
+                If _temporaryKeyMap.TryGetValue(targetKey, temporaryKey) Then
+                    targetKey = temporaryKey
+                End If
+            End If
+            Return targetKey
+        End Function
+
+    End Class
+
+    '$Localized_STECtx_Comment_1050$
+    '$Localized_STECtx_Comment_1060$
+    Private NotInheritable Class RelationshipSet
+        Implements IEnumerable(Of RelationshipWrapper)
+        Private ReadOnly _relationships As HashSet(Of RelationshipWrapper)
+        Private ReadOnly _context As ObjectContext
+
+        Public Sub New(ByVal context As ObjectContext, ByVal allEntities As IEnumerable(Of Object))
+            _context = context
+            _relationships = New HashSet(Of RelationshipWrapper)()
+            For Each entity As Object In allEntities
+                Dim entry As ObjectStateEntry = context.ObjectStateManager.GetObjectStateEntry(entity)
+                For Each relatedEnd As IRelatedEnd In entry.RelationshipManager.GetAllRelatedEnds()
+                    If Not DirectCast(relatedEnd.RelationshipSet.ElementType, AssociationType).IsForeignKey Then
+                        For Each targetEntity As Object In relatedEnd
+                            Add(relatedEnd, entity, targetEntity, EntityState.Unchanged)
+                        Next
+                    End If
+                Next
+            Next
+        End Sub
+
+        '$Localized_STECtx_Comment_1065$
+        Public Sub Add(ByVal relatedEnd As IRelatedEnd, ByVal sourceEntity As Object, ByVal targetEntity As Object, ByVal state As EntityState)
+            Dim wrapper As New RelationshipWrapper(DirectCast(relatedEnd.RelationshipSet, AssociationSet), relatedEnd.SourceRoleName, sourceEntity, relatedEnd.TargetRoleName, targetEntity, state)
+            If Not _relationships.Contains(wrapper) Then
+                _relationships.Add(wrapper)
+            End If
+        End Sub
+
+        '$Localized_STECtx_Comment_1070$
+        Public Sub Remove(ByVal relationshipEntry As ObjectStateEntry)
+            Debug.Assert(relationshipEntry.IsRelationship)
+            Dim associationSet As AssociationSet = DirectCast(relationshipEntry.EntitySet, AssociationSet)
+            Dim values As DbDataRecord = If(relationshipEntry.State = EntityState.Deleted, relationshipEntry.OriginalValues, relationshipEntry.CurrentValues)
+            Dim fromOridinal As Integer = values.GetOrdinal(associationSet.ElementType.AssociationEndMembers(0).Name)
+            Dim fromEntity As Object = _context.ObjectStateManager.GetObjectStateEntry(DirectCast(values.GetValue(fromOridinal), EntityKey)).Entity
+            Dim toOridinal As Integer = values.GetOrdinal(associationSet.ElementType.AssociationEndMembers(1).Name)
+            Dim toEntity As Object = _context.ObjectStateManager.GetObjectStateEntry(DirectCast(values.GetValue(toOridinal), EntityKey)).Entity
+
+            If fromEntity IsNot Nothing AndAlso toEntity IsNot Nothing Then
+                Dim wrapper As New RelationshipWrapper(associationSet, associationSet.ElementType.AssociationEndMembers(0).Name, fromEntity, associationSet.ElementType.AssociationEndMembers(1).Name, toEntity, EntityState.Unchanged)
+
+                _relationships.Remove(wrapper)
+            End If
+        End Sub
+
+#Region "$Localized_STECtx_Comment_1080$"
+
+        Public Function GetEnumerator() As IEnumerator(Of RelationshipWrapper) Implements System.Collections.Generic.IEnumerable(Of RelationshipWrapper).GetEnumerator
+            Return _relationships.GetEnumerator()
+        End Function
+
+        Private Function GetEnumerator1() As System.Collections.IEnumerator Implements System.Collections.IEnumerable.GetEnumerator
+            Return _relationships.GetEnumerator()
+        End Function
+
+#End Region
+
+    End Class
+
+    '$Localized_STECtx_Comment_1090$
+    '$Localized_STECtx_Comment_1100$
+    '$Localized_STECtx_Comment_1110$
+    Private NotInheritable Class RelationshipWrapper
+        Implements IEquatable(Of RelationshipWrapper)
+        Friend ReadOnly AssociationSet As AssociationSet
+        Friend ReadOnly End0 As Object
+        Friend ReadOnly End1 As Object
+        Friend ReadOnly State As EntityState
+
+        Friend Sub New(ByVal extent As AssociationSet, ByVal role0 As String, ByVal associationEndMember0 As Object, ByVal role1 As String, ByVal associationEndMember1 As Object, ByVal state As EntityState)
+            Debug.Assert(extent IsNot Nothing, "null AssociationSet")
+            Debug.Assert(DirectCast(associationEndMember0, Object) IsNot Nothing, "null associationEndMember0")
+            Debug.Assert(DirectCast(associationEndMember1, Object) IsNot Nothing, "null associationEndMember1")
+
+            AssociationSet = extent
+            Debug.Assert(extent.ElementType.AssociationEndMembers.Count = 2, "$Localized_STECtx_Comment_1120$")
+
+            Me.State = state
+
+            If extent.ElementType.AssociationEndMembers(0).Name = role0 Then
+                Debug.Assert(extent.ElementType.AssociationEndMembers(1).Name = role1, "$Localized_STECtx_Comment_1130$")
+                End0 = associationEndMember0
+                End1 = associationEndMember1
+            Else
+                Debug.Assert(extent.ElementType.AssociationEndMembers(0).Name = role1, "$Localized_STECtx_Comment_1140$")
+                Debug.Assert(extent.ElementType.AssociationEndMembers(1).Name = role0, "$Localized_STECtx_Comment_1150$")
+                End0 = associationEndMember1
+                End1 = associationEndMember0
+            End If
+        End Sub
+
+        Friend ReadOnly Property AssociationEndMembers() As ReadOnlyMetadataCollection(Of AssociationEndMember)
+            Get
+                Return Me.AssociationSet.ElementType.AssociationEndMembers
+            End Get
+        End Property
+
+        Public Overloads Overrides Function GetHashCode() As Integer
+            Return Me.AssociationSet.Name.GetHashCode() Xor (Me.End0.GetHashCode() + Me.End1.GetHashCode())
+        End Function
+
+        Public Overloads Overrides Function Equals(ByVal obj As Object) As Boolean
+            Return Equals(TryCast(obj, RelationshipWrapper))
+        End Function
+
+        Public Overloads Function Equals(ByVal wrapper As RelationshipWrapper) As Boolean Implements System.IEquatable(Of RelationshipWrapper).Equals
+            Return (Object.ReferenceEquals(Me, wrapper) OrElse
+                ((wrapper IsNot Nothing) AndAlso
+                Object.ReferenceEquals(Me.AssociationSet, wrapper.AssociationSet) AndAlso
+                Object.ReferenceEquals(Me.End0, wrapper.End0) AndAlso
+                Object.ReferenceEquals(Me.End1, wrapper.End1)))
+        End Function
+    End Class
+End Module
+<#+
+End Sub
+#>

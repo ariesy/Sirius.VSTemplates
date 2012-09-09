@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VSTemplate Version="3.0.0" Type="Item" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <Name _locID="$loc_001$">WCF 数据服务</Name>
+    <Description _locID="$loc_002$">提供 WCF 数据服务的类。</Description>
+    <Icon>__TemplateIcon.ico</Icon>
+    <TemplateID>Microsoft.WAP.VisualBasic.WebDataService</TemplateID>
+    <TemplateGroupID>Web</TemplateGroupID>
+    <ShowByDefault>false</ShowByDefault>
+    <ProjectType>VisualBasic</ProjectType>
+    <ProjectSubType>Web</ProjectSubType>
+    <RequiredFrameworkVersion>3.5</RequiredFrameworkVersion>
+    <DefaultName>WcfDataService.svc</DefaultName>
+    <NumberOfParentCategoriesToRollUp>1</NumberOfParentCategoriesToRollUp> 
+  </TemplateData>
+  <TemplateContent>
+    <References>
+      <Reference>
+        <Assembly>System</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.Data</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.Core</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.Configuration</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.Data.Entity</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.ServiceModel</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.ServiceModel.Web</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.Data.Services</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.Data.Services.Client</Assembly>
+      </Reference>
+    </References>
+    <ProjectItem ReplaceParameters="true" OpenInEditor="false" TargetFileName="$fileinputname$.svc">WebDataService.svc</ProjectItem>
+    <ProjectItem ReplaceParameters="true" OpenInEditor="true" TargetFileName="$fileinputname$.svc.vb">WebDataService.svc.vb</ProjectItem>
+  </TemplateContent>
+  <WizardExtension>
+    <Assembly>Microsoft.VisualStudio.Data.ServicesWizard, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</Assembly>
+    <FullClassName>Microsoft.VisualStudio.Data.ServicesWizard.NewDataServiceWizard</FullClassName>
+  </WizardExtension>
+</VSTemplate>

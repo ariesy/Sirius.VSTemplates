@@ -1,0 +1,21 @@
+<VSTemplate Version="3.0.0" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" Type="Item">
+    <TemplateData>
+        <DefaultName>Helper.vbhtml</DefaultName>
+        <Name>帮助程序(Razor)</Name>
+        <Description>使用 Razor 语法的帮助程序(VBHTML)</Description>
+        <Icon>vbhtmlfile.ico</Icon>
+        <ProjectType>Web</ProjectType>
+        <ProjectSubType>VisualBasic</ProjectSubType>
+        <SortOrder>11</SortOrder>
+        <RequiredFrameworkVersion>4.0</RequiredFrameworkVersion>
+        <TemplateID>RazorHelper.vbhtml.vstemplate</TemplateID>
+    </TemplateData>
+    <TemplateContent>
+        <References/>
+        <ProjectItem SubType="" TargetFileName="$fileinputname$.vbhtml" ReplaceParameters="true">Helper.vbhtml</ProjectItem>
+    </TemplateContent>
+    <WizardExtension>
+        <Assembly>Microsoft.VisualStudio.Web.HTML.Razor.Implementation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</Assembly>
+        <FullClassName>Microsoft.VisualStudio.Web.Razor.Implementation.TemplateWizard</FullClassName>
+    </WizardExtension>
+</VSTemplate>

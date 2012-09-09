@@ -1,0 +1,17 @@
+﻿
+<VSTemplate Type="Item" Version="3.0.0" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <Name>Crystal Report</Name>
+    <Description>&#x767C;&#x4F48;&#x8CC7;&#x6599;&#x81F3; Windows &#x6216; Web Form &#x7684; Crystal Report &#x6A94;&#x6848;</Description>
+    <Icon>crw.ico</Icon>
+    <TemplateID>CrystalReports.Web.CSharp.ItemTemplate</TemplateID>
+    <ProjectType>Web</ProjectType>
+    <ProjectSubType>CSharp</ProjectSubType>
+    <RequiredFrameworkVersion>2.0</RequiredFrameworkVersion>
+    <DefaultName>CrystalReport.rpt</DefaultName>
+    <NumberOfParentCategoriesToRollUp>1</NumberOfParentCategoriesToRollUp>
+  </TemplateData>
+  <TemplateContent>
+    <ProjectItem OpenInWebBrowser="true" ReplaceParameters="true" SubType="" TargetFileName="$fileinputname$.mht">CrystalReportsForVisualStudio.mht</ProjectItem>
+  </TemplateContent>
+</VSTemplate>

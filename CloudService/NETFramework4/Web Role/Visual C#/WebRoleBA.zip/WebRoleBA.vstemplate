@@ -1,0 +1,15 @@
+﻿<VSTemplate Version="3.0.0" Type="Item" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <Name Package="{cf249cd4-01b1-4533-8c65-2b1bb6dfa72b}" ID="2302"/>
+    <Description Package="{cf249cd4-01b1-4533-8c65-2b1bb6dfa72b}" ID="2303"/>
+    <Icon>CSBusinessApplication.ico</Icon>
+    <ProjectType>CloudServiceProject</ProjectType>
+    <DefaultName>BusinessApplication</DefaultName>
+  </TemplateData>
+  <TemplateContent>
+  </TemplateContent>
+  <WizardExtension>
+    <Assembly>Microsoft.VisualStudio.CloudService.Wizard,Version=1.0.0.0,Culture=neutral,PublicKeyToken=b03f5f7f11d50a3a</Assembly>
+    <FullClassName>Microsoft.VisualStudio.CloudService.Wizard.AddItemWizard</FullClassName>
+  </WizardExtension>
+</VSTemplate>

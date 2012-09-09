@@ -1,0 +1,21 @@
+﻿<VSTemplate Version="3.0.0" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" Type="Item">
+    <TemplateData>
+        <DefaultName>_Layout.cshtml</DefaultName>
+        <Name>Layout Page (Razor)</Name>
+        <Description>Layout Page with Razor syntax (CSHTML)</Description>
+        <Icon>cshtmlfile.ico</Icon>
+        <ProjectType>Web</ProjectType>
+        <ProjectSubType>CSharp</ProjectSubType>
+        <SortOrder>11</SortOrder>
+        <RequiredFrameworkVersion>4.0</RequiredFrameworkVersion>
+        <TemplateID>RazorLayoutPage.cshtml.vstemplate</TemplateID>
+    </TemplateData>
+    <TemplateContent>
+        <References />
+        <ProjectItem SubType="" TargetFileName="$fileinputname$.cshtml" ReplaceParameters="true">_Layout.cshtml</ProjectItem>
+    </TemplateContent>
+    <WizardExtension>
+        <Assembly>Microsoft.VisualStudio.Web.HTML.Razor.Implementation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</Assembly>
+        <FullClassName>Microsoft.VisualStudio.Web.Razor.Implementation.TemplateWizard</FullClassName>
+    </WizardExtension>
+</VSTemplate>

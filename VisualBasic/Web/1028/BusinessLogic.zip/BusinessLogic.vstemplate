@@ -1,0 +1,36 @@
+﻿<VSTemplate Version="3.0.0" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" Type="Item">
+  <TemplateData>
+    <DefaultName>DomainService.vb</DefaultName>
+    <Name Package="{cf249cd4-01b1-4533-8c65-2b1bb6dfa72b}" ID="2202"/>
+    <Description Package="{cf249cd4-01b1-4533-8c65-2b1bb6dfa72b}" ID="2203"/>
+    <ProjectType>VisualBasic</ProjectType>
+    <ProjectSubType>Web</ProjectSubType>
+    <TemplateGroupID>Web</TemplateGroupID>
+    <TemplateID>Microsoft.Web.VisualBasic.DomainService</TemplateID>
+    <RequiredFrameworkVersion>4.0</RequiredFrameworkVersion>
+    <NumberOfParentCategoriesToRollUp>1</NumberOfParentCategoriesToRollUp>
+    <Icon>DomainServiceClass.ico</Icon>
+  </TemplateData>
+  <TemplateContent>
+    <References>
+      <Reference>
+        <Assembly>System.ComponentModel.DataAnnotations</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.Runtime.Serialization</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.ServiceModel.DomainServices.Server</Assembly>
+      </Reference>
+      <Reference>
+        <Assembly>System.ServiceModel.DomainServices.Hosting</Assembly>
+      </Reference>
+    </References>
+    <ProjectItem SubType="Code" TargetFileName="$fileinputname$.vb" ReplaceParameters="true">BusinessLogic.vb</ProjectItem>
+    <ProjectItem SubType="Code" TargetFileName="$fileinputname$.metadata.vb" ReplaceParameters="true">BusinessLogic.metadata.vb</ProjectItem>
+  </TemplateContent>
+  <WizardExtension>
+    <Assembly>Microsoft.VisualStudio.ServiceModel.DomainServices.Tools, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, Custom=null</Assembly>
+    <FullClassName>Microsoft.VisualStudio.ServiceModel.DomainServices.Tools.DomainServiceClassWizard</FullClassName>
+  </WizardExtension>
+</VSTemplate>
