@@ -3,8 +3,9 @@
     // Author:Kun Zhu
     // Time:$time$  
     // CLR version：$clrversion$  
-    // Blog：http://ariesyzhk@gmail.com 
-	// Code repository: http://github.com/ariesy
+    // Blog：http://kunzhu.co.cc
+    // Email: ariesyzhk@gmail.com
+    // Code repository: http://github.com/ariesy
     // $safeitemrootname$Copy right reserved by Kun Zhu. Please attach the version info when using this code.  
     // Identity：$guid1$  
 // </copyright>
